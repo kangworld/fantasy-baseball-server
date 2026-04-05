@@ -1,0 +1,9 @@
+.gradle/
+.gradle-user-home-temp/
+build/
+out/
+.idea/
+*.iml
+.DS_Store
+*.log
+*.env

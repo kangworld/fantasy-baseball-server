@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: fantasy-baseball-server
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

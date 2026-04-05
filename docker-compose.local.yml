@@ -1,0 +1,29 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: fantasy-baseball-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: fantasy_baseball
+      MYSQL_USER: fantasy
+      MYSQL_PASSWORD: fantasy
+      MYSQL_ROOT_PASSWORD: root
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: fantasy-baseball-redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+
+volumes:
+  mysql-data:
+  redis-data:
