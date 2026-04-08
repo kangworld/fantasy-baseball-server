@@ -20,12 +20,12 @@ public class HealthController {
     }
 
     @GetMapping
-    public Map<String, Object> health() {
+    public ApiResponse<Map<String, Object>> health() {
         // health 응답은 가장 단순한 스모크 체크 정보만 반환.
-        return Map.of(
+        return ApiResponse.ok(Map.of(
                 "service", applicationName,
                 "status", "UP",
-                "timestamp", OffsetDateTime.now().toString());
+                "timestamp", OffsetDateTime.now().toString()));
     }
 
 }

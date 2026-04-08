@@ -21,11 +21,15 @@ class HealthControllerTest {
 
     @Test
     void shouldReturnHealthPayload() throws Exception {
+        // when then
         mockMvc.perform(get("/api/health"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.service").value("fantasy-baseball-server"))
-                .andExpect(jsonPath("$.status").value("UP"))
-                .andExpect(jsonPath("$.timestamp").exists());
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.status").value("OK"))
+                .andExpect(jsonPath("$.message").value("OK"))
+                .andExpect(jsonPath("$.data.service").value("fantasy-baseball-server"))
+                .andExpect(jsonPath("$.data.status").value("UP"))
+                .andExpect(jsonPath("$.data.timestamp").exists());
     }
 
 }
