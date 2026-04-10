@@ -20,3 +20,9 @@ management:
 logging:
   level:
     org.springframework.jdbc.datasource.init: DEBUG
+
+security:
+  jwt:
+    secret: test-jwt-secret-for-fantasy-baseball-2026
+    access-token-expiration-seconds: 3600
+    refresh-token-expiration-seconds: 1209600
