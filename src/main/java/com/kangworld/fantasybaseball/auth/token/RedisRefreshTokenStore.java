@@ -1,5 +1,7 @@
 package com.kangworld.fantasybaseball.auth.token;
 
+import java.util.Optional;
+
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -22,6 +24,11 @@ public class RedisRefreshTokenStore implements RefreshTokenStore {
                 refreshTokenValue.getSecretHash(),
                 refreshTokenValue.getTtl()
         );
+    }
+
+    @Override
+    public Optional<String> findSecretHash(Long userId, String tokenId) {
+        return Optional.ofNullable(stringRedisTemplate.opsForValue().get(buildKey(userId, tokenId)));
     }
 
     @Override

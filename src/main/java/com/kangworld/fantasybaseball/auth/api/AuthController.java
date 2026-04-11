@@ -11,6 +11,8 @@ import com.kangworld.fantasybaseball.auth.service.AuthService;
 import com.kangworld.fantasybaseball.auth.service.dto.LoginRequest;
 import com.kangworld.fantasybaseball.auth.service.dto.LoginResponse;
 import com.kangworld.fantasybaseball.auth.service.dto.LogoutRequest;
+import com.kangworld.fantasybaseball.auth.service.dto.RefreshAccessTokenRequest;
+import com.kangworld.fantasybaseball.auth.service.dto.RefreshAccessTokenResponse;
 import com.kangworld.fantasybaseball.common.api.ApiResponse;
 
 import jakarta.validation.Valid;
@@ -27,6 +29,12 @@ public class AuthController {
     @ResponseStatus(HttpStatus.OK)
     public ApiResponse<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         return ApiResponse.ok(authService.login(request));
+    }
+
+    @PostMapping("/refresh")
+    @ResponseStatus(HttpStatus.OK)
+    public ApiResponse<RefreshAccessTokenResponse> refresh(@Valid @RequestBody RefreshAccessTokenRequest request) {
+        return ApiResponse.ok(authService.refreshAccessToken(request));
     }
 
     @PostMapping("/logout")

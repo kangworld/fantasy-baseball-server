@@ -9,6 +9,7 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import com.kangworld.fantasybaseball.auth.service.dto.RefreshTokenParts;
 import com.kangworld.fantasybaseball.auth.service.dto.RefreshTokenValue;
 
 @Component
@@ -34,7 +35,7 @@ public class RefreshTokenFactory {
                 .build();
     }
 
-    public String extractTokenId(String rawToken) {
+    public RefreshTokenParts parse(String rawToken) {
         if (rawToken == null || rawToken.isBlank()) {
             return null;
         }
@@ -45,10 +46,13 @@ public class RefreshTokenFactory {
             return null;
         }
 
-        return parts[0];
+        return RefreshTokenParts.builder()
+                .tokenId(parts[0])
+                .secret(parts[1])
+                .build();
     }
 
-    private String hash(String value) {
+    public String hash(String value) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             return Base64.getUrlEncoder().withoutPadding()

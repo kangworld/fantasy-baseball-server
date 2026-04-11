@@ -4,13 +4,17 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.kangworld.fantasybaseball.auth.exception.LoginFailedException;
+import com.kangworld.fantasybaseball.auth.exception.RefreshTokenExpiredException;
 import com.kangworld.fantasybaseball.auth.service.AuthService;
 import com.kangworld.fantasybaseball.auth.service.dto.LoginMember;
 import com.kangworld.fantasybaseball.auth.service.dto.LoginRequest;
 import com.kangworld.fantasybaseball.auth.service.dto.LoginResponse;
 import com.kangworld.fantasybaseball.auth.service.dto.LogoutRequest;
+import com.kangworld.fantasybaseball.auth.service.dto.RefreshAccessTokenRequest;
+import com.kangworld.fantasybaseball.auth.service.dto.RefreshAccessTokenResponse;
+import com.kangworld.fantasybaseball.auth.service.dto.RefreshTokenParts;
 import com.kangworld.fantasybaseball.auth.service.dto.RefreshTokenValue;
-import com.kangworld.fantasybaseball.auth.token.JwtTokenProvider;
+import com.kangworld.fantasybaseball.auth.token.JwtAccessTokenFactory;
 import com.kangworld.fantasybaseball.auth.token.RefreshTokenFactory;
 import com.kangworld.fantasybaseball.auth.token.RefreshTokenStore;
 import com.kangworld.fantasybaseball.member.dao.MemberDao;
@@ -25,7 +29,7 @@ public class AuthServiceImpl implements AuthService {
 
     private final MemberDao memberDao;
     private final PasswordEncoder passwordEncoder;
-    private final JwtTokenProvider jwtTokenProvider;
+    private final JwtAccessTokenFactory jwtAccessTokenFactory;
     private final RefreshTokenFactory refreshTokenFactory;
     private final RefreshTokenStore refreshTokenStore;
 
@@ -40,7 +44,7 @@ public class AuthServiceImpl implements AuthService {
             throw new LoginFailedException();
         }
 
-        String accessToken = jwtTokenProvider.createAccessToken(member.getMemberId(), member.getRole().name());
+        String accessToken = jwtAccessTokenFactory.create(member.getMemberId(), member.getRole().name());
         RefreshTokenValue refreshTokenValue = refreshTokenFactory.create(member.getMemberId());
 
         refreshTokenStore.save(refreshTokenValue);
@@ -57,15 +61,40 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    public RefreshAccessTokenResponse refreshAccessToken(RefreshAccessTokenRequest request) {
+        RefreshTokenParts refreshTokenParts = refreshTokenFactory.parse(request.getRefreshToken());
+
+        if (refreshTokenParts == null) {
+            throw new RefreshTokenExpiredException();
+        }
+
+        Member member = memberDao.findByMemberId(request.getMemberId())
+                .filter(savedMember -> savedMember.getStatus() == MemberStatus.OK)
+                .orElseThrow(RefreshTokenExpiredException::new);
+
+        String savedSecretHash = refreshTokenStore.findSecretHash(request.getMemberId(), refreshTokenParts.getTokenId())
+                .orElseThrow(RefreshTokenExpiredException::new);
+        String requestSecretHash = refreshTokenFactory.hash(refreshTokenParts.getSecret());
+
+        if (!savedSecretHash.equals(requestSecretHash)) {
+            throw new RefreshTokenExpiredException();
+        }
+
+        return RefreshAccessTokenResponse.builder()
+                .accessToken(jwtAccessTokenFactory.create(member.getMemberId(), member.getRole().name()))
+                .build();
+    }
+
+    @Override
     public void logout(LogoutRequest request) {
         // refresh token은 tokenId.secret 구조라서 tokenId만 분리해 삭제 키를 만든다.
-        String tokenId = refreshTokenFactory.extractTokenId(request.getRefreshToken());
+        RefreshTokenParts refreshTokenParts = refreshTokenFactory.parse(request.getRefreshToken());
 
-        if (tokenId == null) {
+        if (refreshTokenParts == null) {
             return;
         }
 
-        refreshTokenStore.delete(request.getMemberId(), tokenId);
+        refreshTokenStore.delete(request.getMemberId(), refreshTokenParts.getTokenId());
     }
 
 }

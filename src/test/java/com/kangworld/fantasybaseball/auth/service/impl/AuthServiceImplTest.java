@@ -3,7 +3,9 @@ package com.kangworld.fantasybaseball.auth.service.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 
 import java.time.LocalDateTime;
@@ -17,10 +19,14 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.jdbc.Sql;
 
 import com.kangworld.fantasybaseball.auth.exception.LoginFailedException;
+import com.kangworld.fantasybaseball.auth.exception.RefreshTokenExpiredException;
 import com.kangworld.fantasybaseball.auth.service.AuthService;
 import com.kangworld.fantasybaseball.auth.service.dto.LoginRequest;
 import com.kangworld.fantasybaseball.auth.service.dto.LoginResponse;
 import com.kangworld.fantasybaseball.auth.service.dto.LogoutRequest;
+import com.kangworld.fantasybaseball.auth.service.dto.RefreshAccessTokenRequest;
+import com.kangworld.fantasybaseball.auth.service.dto.RefreshAccessTokenResponse;
+import com.kangworld.fantasybaseball.auth.token.RefreshTokenFactory;
 import com.kangworld.fantasybaseball.auth.token.RefreshTokenStore;
 import com.kangworld.fantasybaseball.member.dao.MemberDao;
 import com.kangworld.fantasybaseball.member.model.Member;
@@ -40,6 +46,9 @@ class AuthServiceImplTest {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private RefreshTokenFactory refreshTokenFactory;
 
     @MockitoBean
     private RefreshTokenStore refreshTokenStore;
@@ -109,10 +118,49 @@ class AuthServiceImplTest {
         verify(refreshTokenStore, org.mockito.Mockito.never()).delete(any(), any());
     }
 
-    private void insertMember(String email, String rawPassword, String displayName, MemberStatus status) {
+    @Test
+    void refreshAccessToken은_refreshToken이_유효하면_accessToken을_재발급한다() {
+        // given
+        long memberId = insertMember("refresh-service@example.com", "plain-password", "cleanup01", MemberStatus.OK);
+        doReturn(java.util.Optional.of(refreshTokenFactory.hash("secret-value")))
+                .when(refreshTokenStore).findSecretHash(eq(memberId), eq("token-id"));
+        RefreshAccessTokenRequest request = new RefreshAccessTokenRequest(memberId, "token-id.secret-value");
+
+        // when
+        RefreshAccessTokenResponse response = authService.refreshAccessToken(request);
+
+        // then
+        assertThat(response.getAccessToken()).isNotBlank();
+    }
+
+    @Test
+    void refreshAccessToken은_refreshToken이_없으면_재로그인을_유도한다() {
+        // given
+        long memberId = insertMember("refresh-expired-service@example.com", "plain-password", "cleanup01", MemberStatus.OK);
+        RefreshAccessTokenRequest request = new RefreshAccessTokenRequest(memberId, "token-id.secret-value");
+
+        // when then
+        assertThatThrownBy(() -> authService.refreshAccessToken(request))
+                .isInstanceOf(RefreshTokenExpiredException.class);
+    }
+
+    @Test
+    void refreshAccessToken은_secret이_일치하지_않으면_재로그인을_유도한다() {
+        // given
+        long memberId = insertMember("refresh-mismatch-service@example.com", "plain-password", "cleanup01", MemberStatus.OK);
+        doReturn(java.util.Optional.of("different-secret-hash"))
+                .when(refreshTokenStore).findSecretHash(eq(memberId), eq("token-id"));
+        RefreshAccessTokenRequest request = new RefreshAccessTokenRequest(memberId, "token-id.secret-value");
+
+        // when then
+        assertThatThrownBy(() -> authService.refreshAccessToken(request))
+                .isInstanceOf(RefreshTokenExpiredException.class);
+    }
+
+    private long insertMember(String email, String rawPassword, String displayName, MemberStatus status) {
         LocalDateTime now = LocalDateTime.of(2026, 4, 16, 11, 0, 0);
 
-        memberDao.insert(Member.builder()
+        return memberDao.insert(Member.builder()
                 .email(email)
                 .passwordHash(passwordEncoder.encode(rawPassword))
                 .displayName(displayName)

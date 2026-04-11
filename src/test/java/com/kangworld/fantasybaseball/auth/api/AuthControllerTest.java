@@ -1,7 +1,9 @@
 package com.kangworld.fantasybaseball.auth.api;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -20,6 +22,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.kangworld.fantasybaseball.auth.token.RefreshTokenFactory;
 import com.kangworld.fantasybaseball.auth.token.RefreshTokenStore;
 import com.kangworld.fantasybaseball.member.dao.MemberDao;
 import com.kangworld.fantasybaseball.member.model.Member;
@@ -40,6 +43,9 @@ class AuthControllerTest {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private RefreshTokenFactory refreshTokenFactory;
 
     @MockitoBean
     private RefreshTokenStore refreshTokenStore;
@@ -135,10 +141,53 @@ class AuthControllerTest {
         verify(refreshTokenStore).delete(7L, "token-id");
     }
 
-    private void insertMember(String email, String rawPassword, String displayName, MemberStatus status) {
+    @Test
+    void refresh는_refreshToken이_유효하면_accessToken을_재발급한다() throws Exception {
+        // given
+        long memberId = insertMember("refresh@example.com", "plain-password", "slugger01", MemberStatus.OK);
+        doReturn(java.util.Optional.of(refreshTokenFactory.hash("secret-value")))
+                .when(refreshTokenStore).findSecretHash(eq(memberId), eq("token-id"));
+
+        String requestBody = """
+                {
+                  "memberId": %d,
+                  "refreshToken": "token-id.secret-value"
+                }
+                """.formatted(memberId);
+
+        // when then
+        mockMvc.perform(post("/api/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.status").value("OK"))
+                .andExpect(jsonPath("$.message").value("OK"))
+                .andExpect(jsonPath("$.data.accessToken").isString());
+    }
+
+    @Test
+    void refresh는_refreshToken이_만료되면_401을_반환한다() throws Exception {
+        // given
+        long memberId = insertMember("refresh-expired@example.com", "plain-password", "slugger01", MemberStatus.OK);
+        String requestBody = """
+                {
+                  "memberId": %d,
+                  "refreshToken": "token-id.secret-value"
+                }
+                """.formatted(memberId);
+
+        // when then
+        mockMvc.perform(post("/api/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isUnauthorized());
+    }
+
+    private long insertMember(String email, String rawPassword, String displayName, MemberStatus status) {
         LocalDateTime now = LocalDateTime.of(2026, 4, 16, 11, 0, 0);
 
-        memberDao.insert(Member.builder()
+        return memberDao.insert(Member.builder()
                 .email(email)
                 .passwordHash(passwordEncoder.encode(rawPassword))
                 .displayName(displayName)
