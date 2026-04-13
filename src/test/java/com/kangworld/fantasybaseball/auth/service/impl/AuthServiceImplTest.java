@@ -97,10 +97,10 @@ class AuthServiceImplTest {
     @Test
     void logout은_refreshToken에_해당하는_세션을_삭제한다() {
         // given
-        LogoutRequest request = new LogoutRequest(11L, "token-id.secret-value");
+        LogoutRequest request = new LogoutRequest("token-id.secret-value");
 
         // when
-        authService.logout(request);
+        authService.logout(11L, request);
 
         // then
         verify(refreshTokenStore).delete(11L, "token-id");
@@ -109,10 +109,10 @@ class AuthServiceImplTest {
     @Test
     void logout은_refreshToken형식이_잘못되면_삭제를_시도하지_않는다() {
         // given
-        LogoutRequest request = new LogoutRequest(11L, "invalid-token");
+        LogoutRequest request = new LogoutRequest("invalid-token");
 
         // when
-        authService.logout(request);
+        authService.logout(11L, request);
 
         // then
         verify(refreshTokenStore, org.mockito.Mockito.never()).delete(any(), any());

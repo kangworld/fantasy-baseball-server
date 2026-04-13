@@ -24,6 +24,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.kangworld.fantasybaseball.auth.token.RefreshTokenFactory;
 import com.kangworld.fantasybaseball.auth.token.RefreshTokenStore;
+import com.kangworld.fantasybaseball.auth.token.JwtAccessTokenFactory;
 import com.kangworld.fantasybaseball.member.dao.MemberDao;
 import com.kangworld.fantasybaseball.member.model.Member;
 import com.kangworld.fantasybaseball.member.model.MemberRole;
@@ -46,6 +47,9 @@ class AuthControllerTest {
 
     @Autowired
     private RefreshTokenFactory refreshTokenFactory;
+
+    @Autowired
+    private JwtAccessTokenFactory jwtAccessTokenFactory;
 
     @MockitoBean
     private RefreshTokenStore refreshTokenStore;
@@ -121,15 +125,17 @@ class AuthControllerTest {
     @Test
     void logout은_refreshToken에_해당하는_세션을_삭제한다() throws Exception {
         // given
+        long memberId = insertMember("logout@example.com", "plain-password", "slugger01", MemberStatus.OK);
+        String accessToken = jwtAccessTokenFactory.create(memberId, MemberRole.USER.name());
         String requestBody = """
                 {
-                  "memberId": 7,
                   "refreshToken": "token-id.secret-value"
                 }
                 """;
 
         // when then
         mockMvc.perform(post("/api/auth/logout")
+                        .header("Authorization", "Bearer " + accessToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isOk())
@@ -138,7 +144,23 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.message").value("로그아웃이 완료되었습니다."))
                 .andExpect(jsonPath("$.data").doesNotExist());
 
-        verify(refreshTokenStore).delete(7L, "token-id");
+        verify(refreshTokenStore).delete(memberId, "token-id");
+    }
+
+    @Test
+    void logout은_accessToken이_없으면_401을_반환한다() throws Exception {
+        // given
+        String requestBody = """
+                {
+                  "refreshToken": "token-id.secret-value"
+                }
+                """;
+
+        // when then
+        mockMvc.perform(post("/api/auth/logout")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

@@ -12,6 +12,6 @@ public interface AuthService {
 
     RefreshAccessTokenResponse refreshAccessToken(RefreshAccessTokenRequest request);
 
-    void logout(LogoutRequest request);
+    void logout(Long memberId, LogoutRequest request);
 
 }

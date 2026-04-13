@@ -86,7 +86,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public void logout(LogoutRequest request) {
+    public void logout(Long memberId, LogoutRequest request) {
         // refresh token은 tokenId.secret 구조라서 tokenId만 분리해 삭제 키를 만든다.
         RefreshTokenParts refreshTokenParts = refreshTokenFactory.parse(request.getRefreshToken());
 
@@ -94,7 +94,7 @@ public class AuthServiceImpl implements AuthService {
             return;
         }
 
-        refreshTokenStore.delete(request.getMemberId(), refreshTokenParts.getTokenId());
+        refreshTokenStore.delete(memberId, refreshTokenParts.getTokenId());
     }
 
 }
