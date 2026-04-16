@@ -26,3 +26,10 @@ security:
     secret: test-jwt-secret-for-fantasy-baseball-2026
     access-token-expiration-seconds: 3600
     refresh-token-expiration-seconds: 1209600
+
+external:
+  kbo:
+    base-url: https://api-gw.sports.naver.com
+    schedule-cache-ttl: 10m
+    record-cache-ttl: 30s
+    live-game-state-cache-ttl: 15s

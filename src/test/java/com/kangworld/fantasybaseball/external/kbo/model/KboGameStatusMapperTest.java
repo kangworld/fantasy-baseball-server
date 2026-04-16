@@ -1,0 +1,47 @@
+package com.kangworld.fantasybaseball.external.kbo.model;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import org.junit.jupiter.api.Test;
+
+class KboGameStatusMapperTest {
+
+    private final KboGameStatusMapper mapper = new KboGameStatusMapper();
+
+    @Test
+    void cancel이_우선이면_CANCELED로_매핑한다() {
+        // given when
+        KboGameStatus status = mapper.map("RESULT", true, false);
+
+        // then
+        assertThat(status).isEqualTo(KboGameStatus.CANCELED);
+    }
+
+    @Test
+    void suspended가_우선이면_SUSPENDED로_매핑한다() {
+        // given when
+        KboGameStatus status = mapper.map("PLAYING", false, true);
+
+        // then
+        assertThat(status).isEqualTo(KboGameStatus.SUSPENDED);
+    }
+
+    @Test
+    void result는_FINISHED로_매핑한다() {
+        // given when
+        KboGameStatus status = mapper.map("RESULT", false, false);
+
+        // then
+        assertThat(status).isEqualTo(KboGameStatus.FINISHED);
+    }
+
+    @Test
+    void playing은_PLAYING으로_매핑한다() {
+        // given when
+        KboGameStatus status = mapper.map("PLAYING", false, false);
+
+        // then
+        assertThat(status).isEqualTo(KboGameStatus.PLAYING);
+    }
+
+}

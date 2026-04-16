@@ -16,3 +16,10 @@ security:
     secret: ${JWT_SECRET:fantasy-baseball-local-secret-key-2026}
     access-token-expiration-seconds: ${JWT_ACCESS_TOKEN_EXPIRATION_SECONDS:3600}
     refresh-token-expiration-seconds: ${JWT_REFRESH_TOKEN_EXPIRATION_SECONDS:1209600}
+
+external:
+  kbo:
+    base-url: ${KBO_API_BASE_URL:https://api-gw.sports.naver.com}
+    schedule-cache-ttl: 10m
+    record-cache-ttl: 30s
+    live-game-state-cache-ttl: 15s
