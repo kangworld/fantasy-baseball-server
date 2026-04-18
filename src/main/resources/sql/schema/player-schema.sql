@@ -1,5 +1,5 @@
 create table if not exists player (
-    player_id bigint auto_increment primary key,
+    player_id bigint primary key,
     player_name varchar(100) not null,
     player_type varchar(20) not null,
     position_code varchar(20) not null,
