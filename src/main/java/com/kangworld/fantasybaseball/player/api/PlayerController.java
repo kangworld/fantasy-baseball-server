@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.kangworld.fantasybaseball.common.api.ApiResponse;
+import com.kangworld.fantasybaseball.player.model.PlayerPosition;
 import com.kangworld.fantasybaseball.player.model.PlayerType;
 import com.kangworld.fantasybaseball.player.service.PlayerService;
 import com.kangworld.fantasybaseball.player.service.dto.PlayerSummaryResponse;
@@ -24,7 +25,7 @@ public class PlayerController {
     @GetMapping
     public ApiResponse<List<PlayerSummaryResponse>> findPlayers(
             @RequestParam(required = false) PlayerType playerType,
-            @RequestParam(required = false) String positionCode,
+            @RequestParam(required = false) PlayerPosition positionCode,
             @RequestParam(required = false) String keyword
     ) {
         return ApiResponse.ok(playerService.findPlayers(playerType, positionCode, keyword));

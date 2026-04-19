@@ -15,6 +15,7 @@ import org.springframework.test.context.jdbc.Sql;
 
 import com.kangworld.fantasybaseball.common.date.DateIds;
 import com.kangworld.fantasybaseball.player.dao.PlayerDao;
+import com.kangworld.fantasybaseball.player.model.PlayerPosition;
 import com.kangworld.fantasybaseball.player.model.PlayerSearchCondition;
 import com.kangworld.fantasybaseball.player.model.PlayerSummary;
 import com.kangworld.fantasybaseball.player.model.PlayerType;
@@ -71,7 +72,7 @@ class PlayerDaoJdbcTest {
         PlayerSearchCondition condition = PlayerSearchCondition.builder()
                 .dateId(todayDateId)
                 .playerType(PlayerType.BATTER)
-                .positionCode("DH")
+                .positionCode(PlayerPosition.DH)
                 .keyword("김")
                 .build();
 

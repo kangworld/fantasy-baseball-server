@@ -10,7 +10,7 @@ public class PlayerSummary {
     private long playerId;
     private String playerName;
     private PlayerType playerType;
-    private String positionCode;
+    private PlayerPosition positionCode;
     private int cost;
     private int point;
     private int avgPoint;

@@ -9,7 +9,7 @@ public class PlayerSearchCondition {
 
     private int dateId;
     private PlayerType playerType;
-    private String positionCode;
+    private PlayerPosition positionCode;
     private String keyword;
 
 }

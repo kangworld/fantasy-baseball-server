@@ -1,6 +1,7 @@
 package com.kangworld.fantasybaseball.player.service.dto;
 
 import com.kangworld.fantasybaseball.player.model.PlayerSummary;
+import com.kangworld.fantasybaseball.player.model.PlayerPosition;
 import com.kangworld.fantasybaseball.player.model.PlayerType;
 
 import lombok.Builder;
@@ -13,7 +14,7 @@ public class PlayerSummaryResponse {
     private long playerId;
     private String playerName;
     private PlayerType playerType;
-    private String positionCode;
+    private PlayerPosition positionCode;
     private int cost;
     private int point;
     private int avgPoint;

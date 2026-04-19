@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import com.kangworld.fantasybaseball.common.date.DateIds;
 import com.kangworld.fantasybaseball.player.dao.PlayerDao;
+import com.kangworld.fantasybaseball.player.model.PlayerPosition;
 import com.kangworld.fantasybaseball.player.model.PlayerSearchCondition;
 import com.kangworld.fantasybaseball.player.model.PlayerType;
 import com.kangworld.fantasybaseball.player.service.PlayerService;
@@ -21,7 +22,7 @@ public class PlayerServiceImpl implements PlayerService {
     private final PlayerDao playerDao;
 
     @Override
-    public List<PlayerSummaryResponse> findPlayers(PlayerType playerType, String positionCode, String keyword) {
+    public List<PlayerSummaryResponse> findPlayers(PlayerType playerType, PlayerPosition positionCode, String keyword) {
         PlayerSearchCondition condition = PlayerSearchCondition.builder()
                 // 선수풀은 당일 로스터 구성 화면 기준이라 오늘 profile을 읽는다.
                 .dateId(DateIds.from(LocalDate.now()))

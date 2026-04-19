@@ -10,6 +10,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import com.kangworld.fantasybaseball.player.dao.PlayerDao;
+import com.kangworld.fantasybaseball.player.model.PlayerPosition;
 import com.kangworld.fantasybaseball.player.model.PlayerSearchCondition;
 import com.kangworld.fantasybaseball.player.model.PlayerStatus;
 import com.kangworld.fantasybaseball.player.model.PlayerSummary;
@@ -53,9 +54,9 @@ public class PlayerDaoJdbc implements PlayerDao {
             parameters.addValue("playerType", condition.getPlayerType().name());
         }
 
-        if (condition.getPositionCode() != null && !condition.getPositionCode().isBlank()) {
+        if (condition.getPositionCode() != null) {
             sql.append(" and p.position_code = :positionCode");
-            parameters.addValue("positionCode", condition.getPositionCode());
+            parameters.addValue("positionCode", condition.getPositionCode().name());
         }
 
         if (condition.getKeyword() != null && !condition.getKeyword().isBlank()) {
@@ -77,7 +78,7 @@ public class PlayerDaoJdbc implements PlayerDao {
                     .playerId(rs.getLong("player_id"))
                     .playerName(rs.getString("player_name"))
                     .playerType(PlayerType.valueOf(rs.getString("player_type")))
-                    .positionCode(rs.getString("position_code"))
+                    .positionCode(PlayerPosition.valueOf(rs.getString("position_code")))
                     .cost(rs.getInt("cost"))
                     .point(rs.getInt("point"))
                     .avgPoint(rs.getInt("avg_point"))

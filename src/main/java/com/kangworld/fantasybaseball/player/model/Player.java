@@ -12,7 +12,7 @@ public class Player {
     private long playerId;
     private String playerName;
     private PlayerType playerType;
-    private String positionCode;
+    private PlayerPosition positionCode;
     private PlayerStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
