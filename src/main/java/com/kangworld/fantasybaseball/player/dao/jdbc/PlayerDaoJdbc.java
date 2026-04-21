@@ -3,6 +3,7 @@ package com.kangworld.fantasybaseball.player.dao.jdbc;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -68,6 +69,38 @@ public class PlayerDaoJdbc implements PlayerDao {
         sql.append(" order by pp.point desc, p.player_name asc");
 
         return namedParameterJdbcTemplate.query(sql.toString(), parameters, PLAYER_SUMMARY_ROW_MAPPER);
+    }
+
+    @Override
+    public List<PlayerSummary> findSummariesByPlayerIds(int dateId, Set<Long> playerIds) {
+        if (playerIds.isEmpty())
+            return List.of();
+
+        String sql = """
+                select
+                    p.player_id,
+                    p.player_name,
+                    p.player_type,
+                    p.position_code,
+                    pp.cost,
+                    pp.point,
+                    pp.avg_point,
+                    pp.team_code,
+                    pp.pos
+                from player p
+                join player_profile pp on pp.player_id = p.player_id
+                where pp.date_id = :dateId
+                  and p.status = :status
+                  and p.player_id in (:playerIds)
+                order by p.player_id asc
+                """;
+
+        MapSqlParameterSource parameters = new MapSqlParameterSource()
+                .addValue("dateId", dateId)
+                .addValue("status", PlayerStatus.ACTIVE.name())
+                .addValue("playerIds", playerIds);
+
+        return namedParameterJdbcTemplate.query(sql, parameters, PLAYER_SUMMARY_ROW_MAPPER);
     }
 
     private static class PlayerSummaryRowMapper implements RowMapper<PlayerSummary> {

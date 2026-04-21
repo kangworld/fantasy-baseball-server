@@ -3,6 +3,7 @@ package com.kangworld.fantasybaseball.roster.dao.jdbc;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
 
@@ -55,9 +56,8 @@ public class FantasyRosterDaoJdbc implements FantasyRosterDao {
         namedParameterJdbcTemplate.update(sql, parameterSource, keyHolder, new String[]{"roster_id"});
 
         Number key = keyHolder.getKey();
-        if (key == null) {
+        if (key == null)
             throw new IllegalStateException("fantasy roster insert key is null");
-        }
 
         return key.longValue();
     }
@@ -88,14 +88,32 @@ public class FantasyRosterDaoJdbc implements FantasyRosterDao {
 
             return Optional.ofNullable(roster);
         } catch (EmptyResultDataAccessException exception) {
+
             return Optional.empty();
         }
+    }
+
+    @Override
+    public void updateTimestamp(long rosterId, LocalDateTime updatedAt) {
+        String sql = """
+                update fantasy_roster
+                set updated_at = :updatedAt
+                where roster_id = :rosterId
+                """;
+
+        namedParameterJdbcTemplate.update(
+                sql,
+                new MapSqlParameterSource()
+                        .addValue("rosterId", rosterId)
+                        .addValue("updatedAt", Timestamp.valueOf(updatedAt))
+        );
     }
 
     private static class FantasyRosterRowMapper implements RowMapper<FantasyRoster> {
 
         @Override
         public FantasyRoster mapRow(ResultSet rs, int rowNum) throws SQLException {
+
             return FantasyRoster.builder()
                     .rosterId(rs.getLong("roster_id"))
                     .memberId(rs.getLong("member_id"))

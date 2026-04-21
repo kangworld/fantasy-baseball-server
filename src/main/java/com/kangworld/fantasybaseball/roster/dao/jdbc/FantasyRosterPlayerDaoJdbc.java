@@ -28,9 +28,8 @@ public class FantasyRosterPlayerDaoJdbc implements FantasyRosterPlayerDao {
 
     @Override
     public void insertAll(List<FantasyRosterPlayer> players) {
-        if (players.isEmpty()) {
+        if (players.isEmpty())
             return;
-        }
 
         String sql = """
                 insert into fantasy_roster_player (
@@ -83,7 +82,18 @@ public class FantasyRosterPlayerDaoJdbc implements FantasyRosterPlayerDao {
         );
     }
 
+    @Override
+    public void deleteByRosterId(long rosterId) {
+        String sql = """
+                delete from fantasy_roster_player
+                where roster_id = :rosterId
+                """;
+
+        namedParameterJdbcTemplate.update(sql, new MapSqlParameterSource("rosterId", rosterId));
+    }
+
     private MapSqlParameterSource toParameterSource(FantasyRosterPlayer player) {
+
         return new MapSqlParameterSource()
                 .addValue("rosterId", player.getRosterId())
                 .addValue("slotNo", player.getSlotNo())
@@ -98,6 +108,7 @@ public class FantasyRosterPlayerDaoJdbc implements FantasyRosterPlayerDao {
 
         @Override
         public FantasyRosterPlayer mapRow(ResultSet rs, int rowNum) throws SQLException {
+
             return FantasyRosterPlayer.builder()
                     .rosterPlayerId(rs.getLong("roster_player_id"))
                     .rosterId(rs.getLong("roster_id"))

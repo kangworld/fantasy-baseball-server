@@ -10,4 +10,6 @@ public interface FantasyRosterPlayerDao {
 
     List<FantasyRosterPlayer> findByRosterId(long rosterId);
 
+    void deleteByRosterId(long rosterId);
+
 }
