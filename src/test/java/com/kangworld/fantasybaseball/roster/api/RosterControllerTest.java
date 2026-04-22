@@ -12,10 +12,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
@@ -25,6 +27,12 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kangworld.fantasybaseball.auth.token.JwtAccessTokenFactory;
 import com.kangworld.fantasybaseball.common.date.DateIds;
+import com.kangworld.rediscore.lock.RedisLock;
+import com.kangworld.rediscore.lock.RedisLockManager;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -33,7 +41,8 @@ import com.kangworld.fantasybaseball.common.date.DateIds;
         "delete from fantasy_roster_player",
         "delete from fantasy_roster",
         "delete from player_profile",
-        "delete from player"
+        "delete from player",
+        "delete from game"
 }, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 class RosterControllerTest {
 
@@ -50,6 +59,15 @@ class RosterControllerTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @MockBean
+    private RedisLockManager redisLockManager;
+
+    @BeforeEach
+    void setUpRedisLock() {
+        given(redisLockManager.acquire(eq("roster"), eq(3L), any()))
+                .willReturn(new RedisLock("fantasy-baseball::roster-1", "token"));
+    }
 
     @Test
     void rosters_me는_accessToken이_없으면_401을_반환한다() throws Exception {
@@ -159,6 +177,76 @@ class RosterControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
+    @Test
+    void rosters_me는_이미_시작한_경기의_선수를_제출할_수_없다() throws Exception {
+        // given
+        insertRosterPlayers(defaultPlayerIds());
+        insertStartedGame("LG", "HH");
+        String accessToken = jwtAccessTokenFactory.create(1L, "USER");
+        String requestBody = objectMapper.writeValueAsString(rosterRequest(defaultPlayerIds()));
+
+        // when then
+        mockMvc.perform(post("/api/rosters/me")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void rosters_me는_이미_시작한_경기의_선수가_같은_슬롯에_남아있으면_수정한다() throws Exception {
+        // given
+        List<Long> firstPlayerIds = defaultPlayerIds();
+        List<Long> secondPlayerIds = replacementPlayerIds();
+        secondPlayerIds.set(0, firstPlayerIds.get(0));
+
+        insertRosterPlayers(firstPlayerIds);
+        insertRosterPlayers(replacementPlayerIds());
+
+        String accessToken = jwtAccessTokenFactory.create(1L, "USER");
+        mockMvc.perform(post("/api/rosters/me")
+                .header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(rosterRequest(firstPlayerIds))));
+
+        insertStartedGame("LG", "HH");
+
+        // when then
+        mockMvc.perform(put("/api/rosters/me")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(rosterRequest(secondPlayerIds))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.players[0].playerId").value(101))
+                .andExpect(jsonPath("$.data.players[1].playerId").value(202));
+    }
+
+    @Test
+    void rosters_me는_이미_시작한_경기의_선수_슬롯이_바뀌면_거절한다() throws Exception {
+        // given
+        List<Long> playerIds = defaultPlayerIds();
+        List<Long> movedPlayerIds = defaultPlayerIds();
+        movedPlayerIds.set(0, playerIds.get(1));
+        movedPlayerIds.set(1, playerIds.get(0));
+
+        insertRosterPlayers(playerIds);
+
+        String accessToken = jwtAccessTokenFactory.create(1L, "USER");
+        mockMvc.perform(post("/api/rosters/me")
+                .header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(rosterRequest(playerIds))));
+
+        insertStartedGame("LG", "HH");
+
+        // when then
+        mockMvc.perform(put("/api/rosters/me")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(rosterRequest(movedPlayerIds))))
+                .andExpect(status().isBadRequest());
+    }
+
     private Map<String, Object> rosterRequest(List<Long> playerIds) {
         List<Map<String, Object>> players = new ArrayList<>();
         for (int index = 0; index < playerIds.size(); index++) {
@@ -188,11 +276,20 @@ class RosterControllerTest {
                     insert into player (player_id, player_name, player_type, position_code, status, created_at, updated_at)
                     values (?, ?, ?, ?, ?, ?, ?)
                     """, playerId, "선수" + playerId, types[index], positions[index], "ACTIVE", now, now);
+            String teamCode = index == 0 ? "LG" : "KT";
             jdbcTemplate.update("""
                     insert into player_profile (date_id, player_id, team_code, pos, cost, point, avg_point, created_at, updated_at)
                     values (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """, dateId, playerId, "LG", positions[index], 1, 0, 0, now, now);
+                    """, dateId, playerId, teamCode, positions[index], 1, 0, 0, now, now);
         }
+    }
+
+    private void insertStartedGame(String homeTeamCode, String awayTeamCode) {
+        LocalDateTime now = LocalDateTime.now();
+        jdbcTemplate.update("""
+                insert into game (start_at, home_team_code, away_team_code, game_status, created_at, updated_at)
+                values (?, ?, ?, ?, ?, ?)
+                """, now.minusMinutes(10), homeTeamCode, awayTeamCode, "PLAYING", now, now);
     }
 
     private List<Long> defaultPlayerIds() {
