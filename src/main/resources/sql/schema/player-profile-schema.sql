@@ -6,6 +6,7 @@ create table if not exists player_profile (
     cost int not null,
     point int not null,
     avg_point int not null,
+    point_game_count int not null default 0,
     created_at timestamp not null,
     updated_at timestamp not null,
     primary key (date_id, player_id)

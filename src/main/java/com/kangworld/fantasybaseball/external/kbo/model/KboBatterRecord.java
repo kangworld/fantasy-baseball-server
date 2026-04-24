@@ -1,5 +1,7 @@
 package com.kangworld.fantasybaseball.external.kbo.model;
 
+import java.util.List;
+
 import lombok.Builder;
 import lombok.Getter;
 
@@ -18,5 +20,6 @@ public class KboBatterRecord {
     private int kk;
     private int hr;
     private int sb;
+    private List<String> paResults;
 
 }

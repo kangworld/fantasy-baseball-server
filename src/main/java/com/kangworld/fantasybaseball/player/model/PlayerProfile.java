@@ -16,6 +16,7 @@ public class PlayerProfile {
     private int cost;
     private int point;
     private int avgPoint;
+    private int pointGameCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

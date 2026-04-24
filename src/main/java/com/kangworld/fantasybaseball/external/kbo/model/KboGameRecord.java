@@ -13,5 +13,6 @@ public class KboGameRecord {
     private KboGameStatus status;
     private List<KboBatterRecord> batterRecords;
     private List<KboPitcherRecord> pitcherRecords;
+    private List<KboEtcRecord> etcRecords;
 
 }

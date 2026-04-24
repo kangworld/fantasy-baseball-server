@@ -1,14 +1,20 @@
 package com.kangworld.fantasybaseball.external.kbo.fetcher;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.kangworld.fantasybaseball.external.kbo.model.KboBatterRecord;
+import com.kangworld.fantasybaseball.external.kbo.model.KboEtcRecord;
 import com.kangworld.fantasybaseball.external.kbo.model.KboGameRecord;
 import com.kangworld.fantasybaseball.external.kbo.model.KboGameStatus;
 import com.kangworld.fantasybaseball.external.kbo.model.KboGameStatusMapper;
@@ -20,11 +26,14 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class KboGameRecordApiFetcher implements KboGameRecordFetcher {
 
+    private static final Pattern INNING_RESULT_FIELD_PATTERN = Pattern.compile("inn\\d+");
+
     private final RestClient kboRestClient;
     private final KboGameStatusMapper gameStatusMapper;
 
     @Override
     public KboGameRecord fetch(String gameId) {
+        // 경기별 상세 박스스코어 조회
         GameRecordResponse response = kboRestClient.get()
                 .uri("/schedule/games/{gameId}/record", gameId)
                 .retrieve()
@@ -36,10 +45,12 @@ public class KboGameRecordApiFetcher implements KboGameRecordFetcher {
                     .status(KboGameStatus.UNKNOWN)
                     .batterRecords(List.of())
                     .pitcherRecords(List.of())
+                    .etcRecords(List.of())
                     .build();
         }
 
         RecordDataResponse recordData = response.result.recordData;
+        // 홈/원정 박스스코어 병합
         List<BatterRecordResponse> batters = merge(recordData.battersBoxscore.away, recordData.battersBoxscore.home);
         List<PitcherRecordResponse> pitchers = merge(recordData.pitchersBoxscore.away, recordData.pitchersBoxscore.home);
 
@@ -48,6 +59,7 @@ public class KboGameRecordApiFetcher implements KboGameRecordFetcher {
                 .status(gameStatusMapper.map(recordData.gameInfo.statusCode, false, false))
                 .batterRecords(batters.stream().map(this::toBatterRecord).toList())
                 .pitcherRecords(pitchers.stream().map(this::toPitcherRecord).toList())
+                .etcRecords(toEtcRecords(recordData.etcRecords))
                 .build();
     }
 
@@ -64,6 +76,7 @@ public class KboGameRecordApiFetcher implements KboGameRecordFetcher {
                 .kk(batter.kk)
                 .hr(batter.hr)
                 .sb(batter.sb)
+                .paResults(batter.paResults())
                 .build();
     }
 
@@ -76,13 +89,29 @@ public class KboGameRecordApiFetcher implements KboGameRecordFetcher {
                 .r(pitcher.r)
                 .er(pitcher.er)
                 .bb(pitcher.bb)
+                .bbhp(pitcher.bbhp)
                 .kk(pitcher.kk)
                 .hr(pitcher.hr)
                 .bf(pitcher.bf)
+                .wls(pitcher.wls)
                 .build();
     }
 
+    private List<KboEtcRecord> toEtcRecords(List<EtcRecordResponse> records) {
+        // 박스스코어 명시 필드가 없는 이벤트 보조 원천
+        if (records == null)
+            return List.of();
+
+        return records.stream()
+                .map(record -> KboEtcRecord.builder()
+                        .how(record.how)
+                        .result(record.result)
+                        .build())
+                .toList();
+    }
+
     private <T> List<T> merge(List<T> away, List<T> home) {
+        // 빈 홈/원정 응답 흡수
         List<T> merged = new ArrayList<>();
 
         if (away != null) {
@@ -109,6 +138,7 @@ public class KboGameRecordApiFetcher implements KboGameRecordFetcher {
     @JsonIgnoreProperties(ignoreUnknown = true)
     private static class RecordDataResponse {
         private GameInfoResponse gameInfo;
+        private List<EtcRecordResponse> etcRecords;
         private BattersBoxScoreResponse battersBoxscore;
         private PitchersBoxScoreResponse pitchersBoxscore;
     }
@@ -138,6 +168,27 @@ public class KboGameRecordApiFetcher implements KboGameRecordFetcher {
         private int kk;
         private int hr;
         private int sb;
+        private final Map<Integer, String> inningResultByNumber = new TreeMap<>();
+
+        @JsonAnySetter
+        public void setDynamicField(String fieldName, Object value) {
+            // 동적 inn 필드로 타석 순서 유지
+            if (!INNING_RESULT_FIELD_PATTERN.matcher(fieldName).matches() || value == null)
+                return;
+
+            String result = value.toString();
+            if (result.isBlank())
+                return;
+
+            inningResultByNumber.put(Integer.parseInt(fieldName.substring(3)), result);
+        }
+
+        private List<String> paResults() {
+            return inningResultByNumber.entrySet().stream()
+                    .sorted(Comparator.comparingInt(Map.Entry::getKey))
+                    .map(Map.Entry::getValue)
+                    .toList();
+        }
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -157,9 +208,17 @@ public class KboGameRecordApiFetcher implements KboGameRecordFetcher {
         private int r;
         private int er;
         private int bb;
+        private int bbhp;
         private int kk;
         private int hr;
         private int bf;
+        private String wls;
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private static class EtcRecordResponse {
+        private String how;
+        private String result;
     }
 
 }

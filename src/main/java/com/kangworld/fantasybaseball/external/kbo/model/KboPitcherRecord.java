@@ -14,8 +14,10 @@ public class KboPitcherRecord {
     private int r;
     private int er;
     private int bb;
+    private int bbhp;
     private int kk;
     private int hr;
     private int bf;
+    private String wls;
 
 }
