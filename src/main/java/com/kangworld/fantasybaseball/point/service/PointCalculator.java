@@ -7,16 +7,16 @@ import org.springframework.stereotype.Component;
 import com.kangworld.fantasybaseball.point.model.BatterGameRecord;
 import com.kangworld.fantasybaseball.point.model.BatterPointRecordCode;
 import com.kangworld.fantasybaseball.point.model.CalculatedPlayerPoint;
-import com.kangworld.fantasybaseball.point.model.FantasyPointRule;
+import com.kangworld.fantasybaseball.point.model.PointRule;
 import com.kangworld.fantasybaseball.point.model.PitcherGameRecord;
 import com.kangworld.fantasybaseball.point.model.PitcherPointRecordCode;
 
 @Component
-public class FantasyPointCalculator {
+public class PointCalculator {
 
     public CalculatedPlayerPoint calculateBatter(
             BatterGameRecord record,
-            List<FantasyPointRule> rules) {
+            List<PointRule> rules) {
         // 타자 기록 개수와 타자 배점만 곱해 합산
         int point = rules.stream()
                 .mapToInt(rule -> ((BatterPointRecordCode) rule.getRecordCode()).count(record) * rule.getPoint())
@@ -27,7 +27,7 @@ public class FantasyPointCalculator {
 
     public CalculatedPlayerPoint calculatePitcher(
             PitcherGameRecord record,
-            List<FantasyPointRule> rules) {
+            List<PointRule> rules) {
         // 투수 기록 개수와 투수 배점만 곱해 합산
         int point = rules.stream()
                 .mapToInt(rule -> ((PitcherPointRecordCode) rule.getRecordCode()).count(record) * rule.getPoint())

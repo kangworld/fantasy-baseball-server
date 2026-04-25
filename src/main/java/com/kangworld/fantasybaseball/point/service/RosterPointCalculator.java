@@ -7,8 +7,8 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
 import com.kangworld.fantasybaseball.point.dao.PlayerDailyPointDao;
-import com.kangworld.fantasybaseball.roster.dao.FantasyRosterPlayerDao;
-import com.kangworld.fantasybaseball.roster.model.FantasyRosterPlayer;
+import com.kangworld.fantasybaseball.roster.dao.RosterPlayerDao;
+import com.kangworld.fantasybaseball.roster.model.RosterPlayer;
 
 import lombok.RequiredArgsConstructor;
 
@@ -16,13 +16,13 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class RosterPointCalculator {
 
-    private final FantasyRosterPlayerDao fantasyRosterPlayerDao;
+    private final RosterPlayerDao rosterPlayerDao;
     private final PlayerDailyPointDao playerDailyPointDao;
 
     public int calculate(int dateId, long rosterId) {
-        List<FantasyRosterPlayer> rosterPlayers = fantasyRosterPlayerDao.findByRosterId(rosterId);
+        List<RosterPlayer> rosterPlayers = rosterPlayerDao.findByRosterId(rosterId);
         Set<Long> playerIds = rosterPlayers.stream()
-                .map(FantasyRosterPlayer::getPlayerId)
+                .map(RosterPlayer::getPlayerId)
                 .collect(Collectors.toSet());
 
         return playerDailyPointDao.sumPointByPlayerIds(dateId, playerIds);

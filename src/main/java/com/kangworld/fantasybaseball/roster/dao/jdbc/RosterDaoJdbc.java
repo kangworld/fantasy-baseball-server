@@ -15,23 +15,23 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
-import com.kangworld.fantasybaseball.roster.dao.FantasyRosterDao;
-import com.kangworld.fantasybaseball.roster.model.FantasyRoster;
+import com.kangworld.fantasybaseball.roster.dao.RosterDao;
+import com.kangworld.fantasybaseball.roster.model.Roster;
 
 import lombok.RequiredArgsConstructor;
 
 @Repository
 @RequiredArgsConstructor
-public class FantasyRosterDaoJdbc implements FantasyRosterDao {
+public class RosterDaoJdbc implements RosterDao {
 
-    private static final RowMapper<FantasyRoster> FANTASY_ROSTER_ROW_MAPPER = new FantasyRosterRowMapper();
+    private static final RowMapper<Roster> ROSTER_ROW_MAPPER = new RosterRowMapper();
 
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     @Override
-    public long insert(FantasyRoster roster) {
+    public long insert(Roster roster) {
         String sql = """
-                insert into fantasy_roster (
+                insert into roster (
                     member_id,
                     date_id,
                     created_at,
@@ -57,13 +57,13 @@ public class FantasyRosterDaoJdbc implements FantasyRosterDao {
 
         Number key = keyHolder.getKey();
         if (key == null)
-            throw new IllegalStateException("fantasy roster insert key is null");
+            throw new IllegalStateException("roster insert key is null");
 
         return key.longValue();
     }
 
     @Override
-    public Optional<FantasyRoster> findByMemberIdAndDateId(long memberId, int dateId) {
+    public Optional<Roster> findByMemberIdAndDateId(long memberId, int dateId) {
         String sql = """
                 select
                     roster_id,
@@ -71,19 +71,19 @@ public class FantasyRosterDaoJdbc implements FantasyRosterDao {
                     date_id,
                     created_at,
                     updated_at
-                from fantasy_roster
+                from roster
                 where member_id = :memberId
                   and date_id = :dateId
                 """;
 
         try {
-            FantasyRoster roster = namedParameterJdbcTemplate.queryForObject(
+            Roster roster = namedParameterJdbcTemplate.queryForObject(
                     sql,
                     Map.of(
                             "memberId", memberId,
                             "dateId", dateId
                     ),
-                    FANTASY_ROSTER_ROW_MAPPER
+                    ROSTER_ROW_MAPPER
             );
 
             return Optional.ofNullable(roster);
@@ -96,7 +96,7 @@ public class FantasyRosterDaoJdbc implements FantasyRosterDao {
     @Override
     public void updateTimestamp(long rosterId, LocalDateTime updatedAt) {
         String sql = """
-                update fantasy_roster
+                update roster
                 set updated_at = :updatedAt
                 where roster_id = :rosterId
                 """;
@@ -109,12 +109,12 @@ public class FantasyRosterDaoJdbc implements FantasyRosterDao {
         );
     }
 
-    private static class FantasyRosterRowMapper implements RowMapper<FantasyRoster> {
+    private static class RosterRowMapper implements RowMapper<Roster> {
 
         @Override
-        public FantasyRoster mapRow(ResultSet rs, int rowNum) throws SQLException {
+        public Roster mapRow(ResultSet rs, int rowNum) throws SQLException {
 
-            return FantasyRoster.builder()
+            return Roster.builder()
                     .rosterId(rs.getLong("roster_id"))
                     .memberId(rs.getLong("member_id"))
                     .dateId(rs.getInt("date_id"))

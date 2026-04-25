@@ -20,13 +20,13 @@ import com.kangworld.fantasybaseball.player.dao.PlayerDao;
 import com.kangworld.fantasybaseball.player.model.PlayerPosition;
 import com.kangworld.fantasybaseball.player.model.PlayerSummary;
 import com.kangworld.fantasybaseball.player.model.PlayerType;
-import com.kangworld.fantasybaseball.roster.dao.FantasyRosterDao;
-import com.kangworld.fantasybaseball.roster.dao.FantasyRosterPlayerDao;
+import com.kangworld.fantasybaseball.roster.dao.RosterDao;
+import com.kangworld.fantasybaseball.roster.dao.RosterPlayerDao;
 import com.kangworld.fantasybaseball.roster.exception.RosterAlreadyExistsException;
 import com.kangworld.fantasybaseball.roster.exception.RosterNotFoundException;
 import com.kangworld.fantasybaseball.roster.exception.RosterValidationException;
-import com.kangworld.fantasybaseball.roster.model.FantasyRoster;
-import com.kangworld.fantasybaseball.roster.model.FantasyRosterPlayer;
+import com.kangworld.fantasybaseball.roster.model.Roster;
+import com.kangworld.fantasybaseball.roster.model.RosterPlayer;
 import com.kangworld.fantasybaseball.roster.service.RosterService;
 import com.kangworld.fantasybaseball.roster.service.dto.RosterPlayerRequest;
 import com.kangworld.fantasybaseball.roster.service.dto.RosterPlayerResponse;
@@ -56,8 +56,8 @@ public class RosterServiceImpl implements RosterService {
             PlayerPosition.DH
     );
 
-    private final FantasyRosterDao fantasyRosterDao;
-    private final FantasyRosterPlayerDao fantasyRosterPlayerDao;
+    private final RosterDao rosterDao;
+    private final RosterPlayerDao rosterPlayerDao;
     private final PlayerDao playerDao;
     private final GameDao gameDao;
 
@@ -67,7 +67,7 @@ public class RosterServiceImpl implements RosterService {
     public RosterResponse submit(long memberId, RosterSubmitRequest request) {
         LocalDate rosterDate = LocalDate.now();
         int dateId = DateIds.from(rosterDate);
-        if (fantasyRosterDao.findByMemberIdAndDateId(memberId, dateId).isPresent())
+        if (rosterDao.findByMemberIdAndDateId(memberId, dateId).isPresent())
             throw new RosterAlreadyExistsException();
 
         Map<Long, PlayerSummary> playerSummaryById = validateAndLoadPlayers(dateId, request.getPlayers());
@@ -76,16 +76,16 @@ public class RosterServiceImpl implements RosterService {
         validateSubmitStartedGameRestriction(rosterDate, playerSummaryById);
 
         LocalDateTime now = LocalDateTime.now();
-        FantasyRoster roster = FantasyRoster.builder()
+        Roster roster = Roster.builder()
                 .memberId(memberId)
                 .dateId(dateId)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
 
-        long rosterId = fantasyRosterDao.insert(roster);
-        List<FantasyRosterPlayer> rosterPlayers = toRosterPlayers(rosterId, request.getPlayers(), playerSummaryById, now);
-        fantasyRosterPlayerDao.insertAll(rosterPlayers);
+        long rosterId = rosterDao.insert(roster);
+        List<RosterPlayer> rosterPlayers = toRosterPlayers(rosterId, request.getPlayers(), playerSummaryById, now);
+        rosterPlayerDao.insertAll(rosterPlayers);
 
         return toResponse(rosterId, rosterDate, request.getPlayers(), playerSummaryById);
     }
@@ -96,7 +96,7 @@ public class RosterServiceImpl implements RosterService {
     public RosterResponse update(long memberId, RosterSubmitRequest request) {
         LocalDate rosterDate = LocalDate.now();
         int dateId = DateIds.from(rosterDate);
-        FantasyRoster roster = fantasyRosterDao.findByMemberIdAndDateId(memberId, dateId)
+        Roster roster = rosterDao.findByMemberIdAndDateId(memberId, dateId)
                 .orElseThrow(RosterNotFoundException::new);
 
         Map<Long, PlayerSummary> playerSummaryById = validateAndLoadPlayers(dateId, request.getPlayers());
@@ -105,16 +105,16 @@ public class RosterServiceImpl implements RosterService {
         validateUpdateStartedGameRestriction(roster, rosterDate, request.getPlayers(), playerSummaryById);
 
         LocalDateTime now = LocalDateTime.now();
-        List<FantasyRosterPlayer> rosterPlayers = toRosterPlayers(
+        List<RosterPlayer> rosterPlayers = toRosterPlayers(
                 roster.getRosterId(),
                 request.getPlayers(),
                 playerSummaryById,
                 now);
 
         // 화면은 14명 전체 구성을 다시 제출하므로 기존 슬롯을 비우고 새 목록으로 교체한다.
-        fantasyRosterPlayerDao.deleteByRosterId(roster.getRosterId());
-        fantasyRosterPlayerDao.insertAll(rosterPlayers);
-        fantasyRosterDao.updateTimestamp(roster.getRosterId(), now);
+        rosterPlayerDao.deleteByRosterId(roster.getRosterId());
+        rosterPlayerDao.insertAll(rosterPlayers);
+        rosterDao.updateTimestamp(roster.getRosterId(), now);
 
         return toResponse(roster.getRosterId(), rosterDate, request.getPlayers(), playerSummaryById);
     }
@@ -124,7 +124,7 @@ public class RosterServiceImpl implements RosterService {
     public RosterResponse find(long memberId, LocalDate date) {
         int dateId = DateIds.from(date);
 
-        return fantasyRosterDao.findByMemberIdAndDateId(memberId, dateId)
+        return rosterDao.findByMemberIdAndDateId(memberId, dateId)
                 .map(roster -> toResponse(roster, date))
                 .orElse(null);
     }
@@ -165,12 +165,12 @@ public class RosterServiceImpl implements RosterService {
     }
 
     private void validateUpdateStartedGameRestriction(
-            FantasyRoster roster,
+            Roster roster,
             LocalDate rosterDate,
             List<RosterPlayerRequest> requestedPlayers,
             Map<Long, PlayerSummary> requestedPlayerSummaryById) {
         // 수정 검증은 DB에 저장된 기존 로스터와 클라이언트가 보낸 변경 로스터를 비교한다.
-        List<FantasyRosterPlayer> savedPlayers = loadRosterPlayers(roster.getRosterId());
+        List<RosterPlayer> savedPlayers = loadRosterPlayers(roster.getRosterId());
         Map<Long, PlayerSummary> savedPlayerSummaryById = loadPlayerSummaries(roster.getDateId(), savedPlayers);
 
         // 비교 대상 타입이 서로 달라서 slotNo, playerId, teamCode만 가진 같은 형태로 맞춘다.
@@ -184,15 +184,15 @@ public class RosterServiceImpl implements RosterService {
         validateStartedGamePlayerChanges(savedSlotPlayers, requestedSlotPlayers, startedTeamCodes);
     }
 
-    private List<FantasyRosterPlayer> loadRosterPlayers(long rosterId) {
+    private List<RosterPlayer> loadRosterPlayers(long rosterId) {
 
-        return fantasyRosterPlayerDao.findByRosterId(rosterId);
+        return rosterPlayerDao.findByRosterId(rosterId);
     }
 
-    private Map<Long, PlayerSummary> loadPlayerSummaries(int dateId, List<FantasyRosterPlayer> rosterPlayers) {
+    private Map<Long, PlayerSummary> loadPlayerSummaries(int dateId, List<RosterPlayer> rosterPlayers) {
         // 경기 시작 여부는 선수의 당일 팀 코드가 필요해서 roster player만으로는 판단할 수 없다.
         Set<Long> playerIds = rosterPlayers.stream()
-                .map(FantasyRosterPlayer::getPlayerId)
+                .map(RosterPlayer::getPlayerId)
                 .collect(Collectors.toSet());
 
         return playerDao.findSummariesByPlayerIds(dateId, playerIds)
@@ -250,7 +250,7 @@ public class RosterServiceImpl implements RosterService {
     }
 
     private List<RosterSlotPlayer> toSavedSlotPlayers(
-            List<FantasyRosterPlayer> savedPlayers,
+            List<RosterPlayer> savedPlayers,
             Map<Long, PlayerSummary> playerSummaryById) {
 
         return savedPlayers.stream()
@@ -327,7 +327,7 @@ public class RosterServiceImpl implements RosterService {
             throw new RosterValidationException("투수 포지션 구성이 올바르지 않습니다.");
     }
 
-    private List<FantasyRosterPlayer> toRosterPlayers(
+    private List<RosterPlayer> toRosterPlayers(
             long rosterId,
             List<RosterPlayerRequest> players,
             Map<Long, PlayerSummary> playerSummaryById,
@@ -337,7 +337,7 @@ public class RosterServiceImpl implements RosterService {
                 .map(player -> {
                     PlayerSummary summary = playerSummaryById.get(player.getPlayerId());
 
-                    return FantasyRosterPlayer.builder()
+                    return RosterPlayer.builder()
                             .rosterId(rosterId)
                             .slotNo(player.getSlotNo())
                             .playerId(player.getPlayerId())
@@ -350,10 +350,10 @@ public class RosterServiceImpl implements RosterService {
                 .toList();
     }
 
-    private RosterResponse toResponse(FantasyRoster roster, LocalDate date) {
-        List<FantasyRosterPlayer> rosterPlayers = fantasyRosterPlayerDao.findByRosterId(roster.getRosterId());
+    private RosterResponse toResponse(Roster roster, LocalDate date) {
+        List<RosterPlayer> rosterPlayers = rosterPlayerDao.findByRosterId(roster.getRosterId());
         Set<Long> playerIds = rosterPlayers.stream()
-                .map(FantasyRosterPlayer::getPlayerId)
+                .map(RosterPlayer::getPlayerId)
                 .collect(Collectors.toSet());
         Map<Long, PlayerSummary> playerSummaryById = playerDao.findSummariesByPlayerIds(roster.getDateId(), playerIds)
                 .stream()

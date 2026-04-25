@@ -10,9 +10,9 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import com.kangworld.fantasybaseball.player.model.PlayerType;
-import com.kangworld.fantasybaseball.point.dao.FantasyPointRuleDao;
+import com.kangworld.fantasybaseball.point.dao.PointRuleDao;
 import com.kangworld.fantasybaseball.point.model.BatterPointRecordCode;
-import com.kangworld.fantasybaseball.point.model.FantasyPointRule;
+import com.kangworld.fantasybaseball.point.model.PointRule;
 import com.kangworld.fantasybaseball.point.model.PitcherPointRecordCode;
 import com.kangworld.fantasybaseball.point.model.PointRecordCode;
 
@@ -20,17 +20,17 @@ import lombok.RequiredArgsConstructor;
 
 @Repository
 @RequiredArgsConstructor
-public class FantasyPointRuleDaoJdbc implements FantasyPointRuleDao {
+public class PointRuleDaoJdbc implements PointRuleDao {
 
-    private static final RowMapper<FantasyPointRule> ROW_MAPPER = new FantasyPointRuleRowMapper();
+    private static final RowMapper<PointRule> ROW_MAPPER = new PointRuleRowMapper();
 
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     @Override
-    public List<FantasyPointRule> findAllActive() {
+    public List<PointRule> findAllActive() {
         String sql = """
                 select player_type, record_code, point, description, active
-                from fantasy_point_rule
+                from point_rule
                 where active = true
                 order by record_code asc
                 """;
@@ -42,13 +42,13 @@ public class FantasyPointRuleDaoJdbc implements FantasyPointRuleDao {
         );
     }
 
-    private static class FantasyPointRuleRowMapper implements RowMapper<FantasyPointRule> {
+    private static class PointRuleRowMapper implements RowMapper<PointRule> {
 
         @Override
-        public FantasyPointRule mapRow(ResultSet rs, int rowNum) throws SQLException {
+        public PointRule mapRow(ResultSet rs, int rowNum) throws SQLException {
             PlayerType playerType = PlayerType.valueOf(rs.getString("player_type"));
 
-            return FantasyPointRule.builder()
+            return PointRule.builder()
                     .playerType(playerType)
                     .recordCode(toRecordCode(playerType, rs.getString("record_code")))
                     .point(rs.getInt("point"))

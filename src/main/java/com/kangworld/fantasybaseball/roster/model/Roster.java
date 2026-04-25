@@ -7,7 +7,7 @@ import lombok.Getter;
 
 @Getter
 @Builder
-public class FantasyRoster {
+public class Roster {
 
     private long rosterId;
     private long memberId;

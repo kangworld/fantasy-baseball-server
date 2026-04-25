@@ -15,42 +15,42 @@ import org.springframework.test.context.jdbc.Sql;
 
 import com.kangworld.fantasybaseball.player.model.PlayerPosition;
 import com.kangworld.fantasybaseball.player.model.PlayerType;
-import com.kangworld.fantasybaseball.roster.dao.FantasyRosterDao;
-import com.kangworld.fantasybaseball.roster.dao.FantasyRosterPlayerDao;
-import com.kangworld.fantasybaseball.roster.model.FantasyRoster;
-import com.kangworld.fantasybaseball.roster.model.FantasyRosterPlayer;
+import com.kangworld.fantasybaseball.roster.dao.RosterDao;
+import com.kangworld.fantasybaseball.roster.dao.RosterPlayerDao;
+import com.kangworld.fantasybaseball.roster.model.Roster;
+import com.kangworld.fantasybaseball.roster.model.RosterPlayer;
 
 @SpringBootTest
 @ActiveProfiles("test")
 @Sql(statements = {
-        "delete from fantasy_roster_player",
-        "delete from fantasy_roster"
+        "delete from roster_player",
+        "delete from roster"
 }, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
-class FantasyRosterPlayerDaoJdbcTest {
+class RosterPlayerDaoJdbcTest {
 
     @Autowired
-    private FantasyRosterDao fantasyRosterDao;
+    private RosterDao rosterDao;
 
     @Autowired
-    private FantasyRosterPlayerDao fantasyRosterPlayerDao;
+    private RosterPlayerDao rosterPlayerDao;
 
     @Test
     void insertAll은_로스터_선수를_저장하고_slotNo_순서로_조회한다() {
         // given
         long rosterId = insertRoster();
-        fantasyRosterPlayerDao.insertAll(List.of(
+        rosterPlayerDao.insertAll(List.of(
                 buildPlayer(rosterId, 2, 78548L, PlayerType.BATTER, PlayerPosition.C),
                 buildPlayer(rosterId, 1, 76290L, PlayerType.BATTER, PlayerPosition.DH),
                 buildPlayer(rosterId, 3, 63492L, PlayerType.PITCHER, PlayerPosition.P)
         ));
 
         // when
-        List<FantasyRosterPlayer> players = fantasyRosterPlayerDao.findByRosterId(rosterId);
+        List<RosterPlayer> players = rosterPlayerDao.findByRosterId(rosterId);
 
         // then
-        assertThat(players).extracting(FantasyRosterPlayer::getSlotNo)
+        assertThat(players).extracting(RosterPlayer::getSlotNo)
                 .containsExactly(1, 2, 3);
-        assertThat(players).extracting(FantasyRosterPlayer::getPlayerId)
+        assertThat(players).extracting(RosterPlayer::getPlayerId)
                 .containsExactly(76290L, 78548L, 63492L);
     }
 
@@ -58,13 +58,13 @@ class FantasyRosterPlayerDaoJdbcTest {
     void insertAll은_같은_로스터에서_slotNo를_중복_저장할_수_없다() {
         // given
         long rosterId = insertRoster();
-        List<FantasyRosterPlayer> players = List.of(
+        List<RosterPlayer> players = List.of(
                 buildPlayer(rosterId, 1, 76290L, PlayerType.BATTER, PlayerPosition.DH),
                 buildPlayer(rosterId, 1, 78548L, PlayerType.BATTER, PlayerPosition.C)
         );
 
         // when then
-        assertThatThrownBy(() -> fantasyRosterPlayerDao.insertAll(players))
+        assertThatThrownBy(() -> rosterPlayerDao.insertAll(players))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
@@ -72,20 +72,20 @@ class FantasyRosterPlayerDaoJdbcTest {
     void insertAll은_같은_로스터에서_선수를_중복_저장할_수_없다() {
         // given
         long rosterId = insertRoster();
-        List<FantasyRosterPlayer> players = List.of(
+        List<RosterPlayer> players = List.of(
                 buildPlayer(rosterId, 1, 76290L, PlayerType.BATTER, PlayerPosition.DH),
                 buildPlayer(rosterId, 2, 76290L, PlayerType.BATTER, PlayerPosition.DH)
         );
 
         // when then
-        assertThatThrownBy(() -> fantasyRosterPlayerDao.insertAll(players))
+        assertThatThrownBy(() -> rosterPlayerDao.insertAll(players))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     private long insertRoster() {
         LocalDateTime now = LocalDateTime.of(2026, 5, 4, 10, 0);
 
-        return fantasyRosterDao.insert(FantasyRoster.builder()
+        return rosterDao.insert(Roster.builder()
                 .memberId(1L)
                 .dateId(20260504)
                 .createdAt(now)
@@ -93,7 +93,7 @@ class FantasyRosterPlayerDaoJdbcTest {
                 .build());
     }
 
-    private FantasyRosterPlayer buildPlayer(
+    private RosterPlayer buildPlayer(
             long rosterId,
             int slotNo,
             long playerId,
@@ -102,7 +102,7 @@ class FantasyRosterPlayerDaoJdbcTest {
     ) {
         LocalDateTime now = LocalDateTime.of(2026, 5, 4, 10, 0);
 
-        return FantasyRosterPlayer.builder()
+        return RosterPlayer.builder()
                 .rosterId(rosterId)
                 .slotNo(slotNo)
                 .playerId(playerId)

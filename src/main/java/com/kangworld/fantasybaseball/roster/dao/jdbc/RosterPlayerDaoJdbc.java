@@ -12,27 +12,27 @@ import org.springframework.stereotype.Repository;
 
 import com.kangworld.fantasybaseball.player.model.PlayerPosition;
 import com.kangworld.fantasybaseball.player.model.PlayerType;
-import com.kangworld.fantasybaseball.roster.dao.FantasyRosterPlayerDao;
-import com.kangworld.fantasybaseball.roster.model.FantasyRosterPlayer;
+import com.kangworld.fantasybaseball.roster.dao.RosterPlayerDao;
+import com.kangworld.fantasybaseball.roster.model.RosterPlayer;
 
 import lombok.RequiredArgsConstructor;
 
 @Repository
 @RequiredArgsConstructor
-public class FantasyRosterPlayerDaoJdbc implements FantasyRosterPlayerDao {
+public class RosterPlayerDaoJdbc implements RosterPlayerDao {
 
-    private static final RowMapper<FantasyRosterPlayer> FANTASY_ROSTER_PLAYER_ROW_MAPPER =
-            new FantasyRosterPlayerRowMapper();
+    private static final RowMapper<RosterPlayer> ROSTER_PLAYER_ROW_MAPPER =
+            new RosterPlayerRowMapper();
 
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     @Override
-    public void insertAll(List<FantasyRosterPlayer> players) {
+    public void insertAll(List<RosterPlayer> players) {
         if (players.isEmpty())
             return;
 
         String sql = """
-                insert into fantasy_roster_player (
+                insert into roster_player (
                     roster_id,
                     slot_no,
                     player_id,
@@ -59,7 +59,7 @@ public class FantasyRosterPlayerDaoJdbc implements FantasyRosterPlayerDao {
     }
 
     @Override
-    public List<FantasyRosterPlayer> findByRosterId(long rosterId) {
+    public List<RosterPlayer> findByRosterId(long rosterId) {
         String sql = """
                 select
                     roster_player_id,
@@ -70,7 +70,7 @@ public class FantasyRosterPlayerDaoJdbc implements FantasyRosterPlayerDao {
                     position_code,
                     created_at,
                     updated_at
-                from fantasy_roster_player
+                from roster_player
                 where roster_id = :rosterId
                 order by slot_no asc
                 """;
@@ -78,21 +78,21 @@ public class FantasyRosterPlayerDaoJdbc implements FantasyRosterPlayerDao {
         return namedParameterJdbcTemplate.query(
                 sql,
                 new MapSqlParameterSource("rosterId", rosterId),
-                FANTASY_ROSTER_PLAYER_ROW_MAPPER
+                ROSTER_PLAYER_ROW_MAPPER
         );
     }
 
     @Override
     public void deleteByRosterId(long rosterId) {
         String sql = """
-                delete from fantasy_roster_player
+                delete from roster_player
                 where roster_id = :rosterId
                 """;
 
         namedParameterJdbcTemplate.update(sql, new MapSqlParameterSource("rosterId", rosterId));
     }
 
-    private MapSqlParameterSource toParameterSource(FantasyRosterPlayer player) {
+    private MapSqlParameterSource toParameterSource(RosterPlayer player) {
 
         return new MapSqlParameterSource()
                 .addValue("rosterId", player.getRosterId())
@@ -104,12 +104,12 @@ public class FantasyRosterPlayerDaoJdbc implements FantasyRosterPlayerDao {
                 .addValue("updatedAt", Timestamp.valueOf(player.getUpdatedAt()));
     }
 
-    private static class FantasyRosterPlayerRowMapper implements RowMapper<FantasyRosterPlayer> {
+    private static class RosterPlayerRowMapper implements RowMapper<RosterPlayer> {
 
         @Override
-        public FantasyRosterPlayer mapRow(ResultSet rs, int rowNum) throws SQLException {
+        public RosterPlayer mapRow(ResultSet rs, int rowNum) throws SQLException {
 
-            return FantasyRosterPlayer.builder()
+            return RosterPlayer.builder()
                     .rosterPlayerId(rs.getLong("roster_player_id"))
                     .rosterId(rs.getLong("roster_id"))
                     .slotNo(rs.getInt("slot_no"))

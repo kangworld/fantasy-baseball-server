@@ -7,7 +7,7 @@ import lombok.Getter;
 
 @Getter
 @Builder
-public class FantasyPointRule {
+public class PointRule {
 
     private PlayerType playerType;
     private PointRecordCode recordCode;

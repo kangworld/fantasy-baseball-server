@@ -13,30 +13,30 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.jdbc.Sql;
 
-import com.kangworld.fantasybaseball.roster.dao.FantasyRosterDao;
-import com.kangworld.fantasybaseball.roster.model.FantasyRoster;
+import com.kangworld.fantasybaseball.roster.dao.RosterDao;
+import com.kangworld.fantasybaseball.roster.model.Roster;
 
 @SpringBootTest
 @ActiveProfiles("test")
 @Sql(statements = {
-        "delete from fantasy_roster_player",
-        "delete from fantasy_roster"
+        "delete from roster_player",
+        "delete from roster"
 }, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
-class FantasyRosterDaoJdbcTest {
+class RosterDaoJdbcTest {
 
     @Autowired
-    private FantasyRosterDao fantasyRosterDao;
+    private RosterDao rosterDao;
 
     @Test
     void insert는_로스터를_저장하고_생성된_id를_반환한다() {
         // given
-        FantasyRoster roster = buildRoster(1L, 20260504);
+        Roster roster = buildRoster(1L, 20260504);
 
         // when
-        long rosterId = fantasyRosterDao.insert(roster);
+        long rosterId = rosterDao.insert(roster);
 
         // then
-        Optional<FantasyRoster> found = fantasyRosterDao.findByMemberIdAndDateId(1L, 20260504);
+        Optional<Roster> found = rosterDao.findByMemberIdAndDateId(1L, 20260504);
         assertThat(rosterId).isPositive();
         assertThat(found).isPresent();
         assertThat(found.get().getRosterId()).isEqualTo(rosterId);
@@ -47,18 +47,18 @@ class FantasyRosterDaoJdbcTest {
     @Test
     void insert는_같은_회원과_날짜의_로스터를_중복_저장할_수_없다() {
         // given
-        FantasyRoster roster = buildRoster(1L, 20260504);
-        fantasyRosterDao.insert(roster);
+        Roster roster = buildRoster(1L, 20260504);
+        rosterDao.insert(roster);
 
         // when then
-        assertThatThrownBy(() -> fantasyRosterDao.insert(roster))
+        assertThatThrownBy(() -> rosterDao.insert(roster))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
-    private FantasyRoster buildRoster(long memberId, int dateId) {
+    private Roster buildRoster(long memberId, int dateId) {
         LocalDateTime now = LocalDateTime.of(2026, 5, 4, 10, 0);
 
-        return FantasyRoster.builder()
+        return Roster.builder()
                 .memberId(memberId)
                 .dateId(dateId)
                 .createdAt(now)

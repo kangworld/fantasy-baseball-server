@@ -16,11 +16,11 @@ import com.kangworld.fantasybaseball.common.date.DateIds;
 import com.kangworld.fantasybaseball.external.kbo.model.KboGameRecord;
 import com.kangworld.fantasybaseball.player.model.PlayerProfile;
 import com.kangworld.fantasybaseball.player.model.PlayerType;
-import com.kangworld.fantasybaseball.point.dao.FantasyPointRuleDao;
+import com.kangworld.fantasybaseball.point.dao.PointRuleDao;
 import com.kangworld.fantasybaseball.point.dao.PlayerDailyPointDao;
 import com.kangworld.fantasybaseball.point.dao.PlayerProfilePointDao;
 import com.kangworld.fantasybaseball.point.model.CalculatedPlayerPoint;
-import com.kangworld.fantasybaseball.point.model.FantasyPointRule;
+import com.kangworld.fantasybaseball.point.model.PointRule;
 import com.kangworld.fantasybaseball.point.model.PlayerDailyPoint;
 
 import lombok.RequiredArgsConstructor;
@@ -29,11 +29,11 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class PlayerProfilePointBuildService {
 
-    private final FantasyPointRuleDao fantasyPointRuleDao;
+    private final PointRuleDao pointRuleDao;
     private final PlayerDailyPointDao playerDailyPointDao;
     private final PlayerProfilePointDao playerProfilePointDao;
     private final PlayerGameRecordMapper playerGameRecordMapper;
-    private final FantasyPointCalculator fantasyPointCalculator;
+    private final PointCalculator pointCalculator;
 
     @Transactional
     public void build(LocalDate targetDate, List<KboGameRecord> gameRecords) {
@@ -52,10 +52,10 @@ public class PlayerProfilePointBuildService {
             List<KboGameRecord> gameRecords,
             LocalDateTime now) {
         // 배점 룰은 한 번만 조회
-        Map<PlayerType, List<FantasyPointRule>> rulesByType = fantasyPointRuleDao.findAllActive().stream()
-                .collect(Collectors.groupingBy(FantasyPointRule::getPlayerType));
-        List<FantasyPointRule> batterRules = rulesByType.getOrDefault(PlayerType.BATTER, Collections.emptyList());
-        List<FantasyPointRule> pitcherRules = rulesByType.getOrDefault(PlayerType.PITCHER, Collections.emptyList());
+        Map<PlayerType, List<PointRule>> rulesByType = pointRuleDao.findAllActive().stream()
+                .collect(Collectors.groupingBy(PointRule::getPlayerType));
+        List<PointRule> batterRules = rulesByType.getOrDefault(PlayerType.BATTER, Collections.emptyList());
+        List<PointRule> pitcherRules = rulesByType.getOrDefault(PlayerType.PITCHER, Collections.emptyList());
 
         Map<DailyPointKey, Integer> pointByKey = gameRecords.stream()
                 .flatMap(gameRecord -> calculateGamePoints(gameRecord, batterRules, pitcherRules))
@@ -82,14 +82,14 @@ public class PlayerProfilePointBuildService {
 
     private Stream<CalculatedPlayerPoint> calculateGamePoints(
             KboGameRecord gameRecord,
-            List<FantasyPointRule> batterRules,
-            List<FantasyPointRule> pitcherRules) {
+            List<PointRule> batterRules,
+            List<PointRule> pitcherRules) {
         // 같은 선수의 타자/투수 점수는 이후 playerId 기준으로 합산
         Stream<CalculatedPlayerPoint> batterPoints = playerGameRecordMapper.toBatterRecords(gameRecord).stream()
-                .map(record -> fantasyPointCalculator.calculateBatter(record, batterRules));
+                .map(record -> pointCalculator.calculateBatter(record, batterRules));
 
         Stream<CalculatedPlayerPoint> pitcherPoints = playerGameRecordMapper.toPitcherRecords(gameRecord).stream()
-                .map(record -> fantasyPointCalculator.calculatePitcher(record, pitcherRules));
+                .map(record -> pointCalculator.calculatePitcher(record, pitcherRules));
 
         return Stream.concat(batterPoints, pitcherPoints);
     }

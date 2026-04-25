@@ -10,14 +10,14 @@ import com.kangworld.fantasybaseball.player.model.PlayerType;
 import com.kangworld.fantasybaseball.point.model.BatterGameRecord;
 import com.kangworld.fantasybaseball.point.model.BatterPointRecordCode;
 import com.kangworld.fantasybaseball.point.model.CalculatedPlayerPoint;
-import com.kangworld.fantasybaseball.point.model.FantasyPointRule;
+import com.kangworld.fantasybaseball.point.model.PointRule;
 import com.kangworld.fantasybaseball.point.model.PitcherGameRecord;
 import com.kangworld.fantasybaseball.point.model.PitcherPointRecordCode;
 import com.kangworld.fantasybaseball.point.model.PointRecordCode;
 
-class FantasyPointCalculatorTest {
+class PointCalculatorTest {
 
-    private final FantasyPointCalculator calculator = new FantasyPointCalculator();
+    private final PointCalculator calculator = new PointCalculator();
 
     @Test
     void 타자_명시필드와_문자열_기록을_포인트로_계산한다() {
@@ -86,7 +86,7 @@ class FantasyPointCalculatorTest {
         assertThat(point.point()).isEqualTo(27);
     }
 
-    private List<FantasyPointRule> batterRules() {
+    private List<PointRule> batterRules() {
         return List.of(
                 batterRule(BatterPointRecordCode.BAT_HIT, 2),
                 batterRule(BatterPointRecordCode.BAT_2B, 2),
@@ -106,7 +106,7 @@ class FantasyPointCalculatorTest {
         );
     }
 
-    private List<FantasyPointRule> pitcherRules() {
+    private List<PointRule> pitcherRules() {
         return List.of(
                 pitcherRule(PitcherPointRecordCode.PIT_OUT, 1),
                 pitcherRule(PitcherPointRecordCode.PIT_SO, 2),
@@ -126,16 +126,16 @@ class FantasyPointCalculatorTest {
         );
     }
 
-    private FantasyPointRule batterRule(PointRecordCode recordCode, int point) {
+    private PointRule batterRule(PointRecordCode recordCode, int point) {
         return rule(PlayerType.BATTER, recordCode, point);
     }
 
-    private FantasyPointRule pitcherRule(PointRecordCode recordCode, int point) {
+    private PointRule pitcherRule(PointRecordCode recordCode, int point) {
         return rule(PlayerType.PITCHER, recordCode, point);
     }
 
-    private FantasyPointRule rule(PlayerType playerType, PointRecordCode recordCode, int point) {
-        return FantasyPointRule.builder()
+    private PointRule rule(PlayerType playerType, PointRecordCode recordCode, int point) {
+        return PointRule.builder()
                 .playerType(playerType)
                 .recordCode(recordCode)
                 .point(point)

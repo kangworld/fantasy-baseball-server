@@ -38,8 +38,8 @@ import static org.mockito.BDDMockito.given;
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Sql(statements = {
-        "delete from fantasy_roster_player",
-        "delete from fantasy_roster",
+        "delete from roster_player",
+        "delete from roster",
         "delete from player_profile",
         "delete from player",
         "delete from game"
