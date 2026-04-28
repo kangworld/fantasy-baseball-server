@@ -1,13 +1,19 @@
 package com.kangworld.fantasybaseball.roster.api;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -17,10 +23,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -29,10 +35,6 @@ import com.kangworld.fantasybaseball.auth.token.JwtAccessTokenFactory;
 import com.kangworld.fantasybaseball.common.date.DateIds;
 import com.kangworld.rediscore.lock.RedisLock;
 import com.kangworld.rediscore.lock.RedisLockManager;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.BDDMockito.given;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -46,7 +48,9 @@ import static org.mockito.BDDMockito.given;
 }, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 class RosterControllerTest {
 
-    private static final LocalDate ROSTER_DATE = LocalDate.now();
+    private static final ZoneId SEOUL_ZONE_ID = ZoneId.of("Asia/Seoul");
+    private static final LocalDate ROSTER_DATE = LocalDate.of(2026, 5, 4);
+    private static final LocalDateTime ROSTER_NOW = LocalDateTime.of(2026, 5, 4, 12, 0);
 
     @Autowired
     private MockMvc mockMvc;
@@ -60,11 +64,16 @@ class RosterControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
+    @MockitoBean
     private RedisLockManager redisLockManager;
 
+    @MockitoBean
+    private Clock clock;
+
     @BeforeEach
-    void setUpRedisLock() {
+    void setUp() {
+        given(clock.instant()).willReturn(Instant.parse("2026-05-04T03:00:00Z"));
+        given(clock.getZone()).willReturn(SEOUL_ZONE_ID);
         given(redisLockManager.acquire(eq("roster"), eq(3L), any()))
                 .willReturn(new RedisLock("fantasy-baseball::roster-1", "token"));
     }
@@ -267,7 +276,7 @@ class RosterControllerTest {
                 "BATTER", "BATTER", "BATTER", "BATTER", "BATTER", "BATTER", "BATTER", "BATTER", "BATTER",
                 "PITCHER", "PITCHER", "PITCHER", "PITCHER", "PITCHER"
         };
-        LocalDateTime now = LocalDateTime.of(2026, 5, 4, 12, 0);
+        LocalDateTime now = ROSTER_NOW;
         int dateId = DateIds.from(ROSTER_DATE);
 
         for (int index = 0; index < playerIds.size(); index++) {
@@ -285,7 +294,7 @@ class RosterControllerTest {
     }
 
     private void insertStartedGame(String homeTeamCode, String awayTeamCode) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = ROSTER_NOW;
         jdbcTemplate.update("""
                 insert into game (start_at, home_team_code, away_team_code, game_status, created_at, updated_at)
                 values (?, ?, ?, ?, ?, ?)

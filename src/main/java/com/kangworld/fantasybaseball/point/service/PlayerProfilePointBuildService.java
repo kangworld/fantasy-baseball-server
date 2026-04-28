@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.kangworld.fantasybaseball.common.date.DateIds;
+import com.kangworld.fantasybaseball.common.time.FantasyTime;
 import com.kangworld.fantasybaseball.external.kbo.model.KboGameRecord;
 import com.kangworld.fantasybaseball.player.model.PlayerProfile;
 import com.kangworld.fantasybaseball.player.model.PlayerType;
@@ -34,12 +35,13 @@ public class PlayerProfilePointBuildService {
     private final PlayerProfilePointDao playerProfilePointDao;
     private final PlayerGameRecordMapper playerGameRecordMapper;
     private final PointCalculator pointCalculator;
+    private final FantasyTime fantasyTime;
 
     @Transactional
     public void build(LocalDate targetDate, List<KboGameRecord> gameRecords) {
         // 하루치 record API 결과를 선수 일간 포인트와 프로필 누적값으로 반영
         int dateId = DateIds.from(targetDate);
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = fantasyTime.getDateTime();
 
         List<PlayerDailyPoint> dailyPoints = calculateDailyPoints(dateId, gameRecords, now);
         playerDailyPointDao.upsertAll(dailyPoints);

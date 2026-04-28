@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.kangworld.fantasybaseball.common.date.DateIds;
+import com.kangworld.fantasybaseball.common.time.FantasyTime;
 import com.kangworld.fantasybaseball.game.dao.GameDao;
 import com.kangworld.fantasybaseball.player.dao.PlayerDao;
 import com.kangworld.fantasybaseball.player.model.PlayerPosition;
@@ -60,12 +61,13 @@ public class RosterServiceImpl implements RosterService {
     private final RosterPlayerDao rosterPlayerDao;
     private final PlayerDao playerDao;
     private final GameDao gameDao;
+    private final FantasyTime fantasyTime;
 
     @Override
     @Transactional
     @RedisLock(name = "roster", key = "#memberId")
     public RosterResponse submit(long memberId, RosterSubmitRequest request) {
-        LocalDate rosterDate = LocalDate.now();
+        LocalDate rosterDate = fantasyTime.now();
         int dateId = DateIds.from(rosterDate);
         if (rosterDao.findByMemberIdAndDateId(memberId, dateId).isPresent())
             throw new RosterAlreadyExistsException();
@@ -75,7 +77,7 @@ public class RosterServiceImpl implements RosterService {
         // 제출은 기존 로스터가 없으므로, 요청 선수 중 이미 시작한 경기 선수가 있는지만 확인한다.
         validateSubmitStartedGameRestriction(rosterDate, playerSummaryById);
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = fantasyTime.getDateTime();
         Roster roster = Roster.builder()
                 .memberId(memberId)
                 .dateId(dateId)
@@ -94,7 +96,7 @@ public class RosterServiceImpl implements RosterService {
     @Transactional
     @RedisLock(name = "roster", key = "#memberId")
     public RosterResponse update(long memberId, RosterSubmitRequest request) {
-        LocalDate rosterDate = LocalDate.now();
+        LocalDate rosterDate = fantasyTime.now();
         int dateId = DateIds.from(rosterDate);
         Roster roster = rosterDao.findByMemberIdAndDateId(memberId, dateId)
                 .orElseThrow(RosterNotFoundException::new);
@@ -104,7 +106,7 @@ public class RosterServiceImpl implements RosterService {
         // 수정은 기존 로스터와 요청 로스터를 비교해, 이미 시작한 경기 선수가 그대로 유지됐는지 확인한다.
         validateUpdateStartedGameRestriction(roster, rosterDate, request.getPlayers(), playerSummaryById);
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = fantasyTime.getDateTime();
         List<RosterPlayer> rosterPlayers = toRosterPlayers(
                 roster.getRosterId(),
                 request.getPlayers(),
@@ -206,7 +208,7 @@ public class RosterServiceImpl implements RosterService {
                 .map(PlayerSummary::getTeamCode)
                 .collect(Collectors.toSet());
 
-        return gameDao.findStartedTeamCodes(rosterDate, LocalDateTime.now(), teamCodes);
+        return gameDao.findStartedTeamCodes(rosterDate, fantasyTime.getDateTime(), teamCodes);
     }
 
     private Set<String> findStartedTeamCodesBySlots(LocalDate rosterDate, List<RosterSlotPlayer> slotPlayers) {
@@ -215,7 +217,7 @@ public class RosterServiceImpl implements RosterService {
                 .map(RosterSlotPlayer::teamCode)
                 .collect(Collectors.toSet());
 
-        return gameDao.findStartedTeamCodes(rosterDate, LocalDateTime.now(), teamCodes);
+        return gameDao.findStartedTeamCodes(rosterDate, fantasyTime.getDateTime(), teamCodes);
     }
 
     private void validateStartedGamePlayerChanges(

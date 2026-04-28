@@ -1,14 +1,19 @@
 package com.kangworld.fantasybaseball.game.api;
 
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doReturn;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -31,6 +36,9 @@ import com.kangworld.fantasybaseball.external.kbo.service.KboScheduleFetchServic
 @ActiveProfiles("test")
 class GameControllerTest {
 
+    private static final ZoneId SEOUL_ZONE_ID = ZoneId.of("Asia/Seoul");
+    private static final LocalDate TODAY = LocalDate.of(2026, 4, 28);
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -42,6 +50,15 @@ class GameControllerTest {
 
     @MockitoBean
     private KboGameRecordFetchService gameRecordFetchService;
+
+    @MockitoBean
+    private Clock clock;
+
+    @BeforeEach
+    void setUpClock() {
+        given(clock.instant()).willReturn(Instant.parse("2026-04-28T03:00:00Z"));
+        given(clock.getZone()).willReturn(SEOUL_ZONE_ID);
+    }
 
     @Test
     void schedule은_accessToken이_없으면_401을_반환한다() throws Exception {
@@ -80,10 +97,9 @@ class GameControllerTest {
     @Test
     void playerRecords는_당일_경기기록을_타자와_투수_단일_배열로_반환한다() throws Exception {
         // given
-        LocalDate today = LocalDate.now();
         String accessToken = jwtAccessTokenFactory.create(1L, "USER");
         doReturn(List.of(buildScheduleGame("game-2", KboGameStatus.PLAYING)))
-                .when(scheduleFetchService).findRecordTargetGames(today);
+                .when(scheduleFetchService).findRecordTargetGames(TODAY);
         doReturn(buildGameRecord()).when(gameRecordFetchService).fetch("game-2");
 
         // when then

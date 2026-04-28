@@ -1,18 +1,24 @@
 package com.kangworld.fantasybaseball.player.api;
 
+import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -28,6 +34,9 @@ import com.kangworld.fantasybaseball.common.date.DateIds;
 }, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 class PlayerControllerTest {
 
+    private static final ZoneId SEOUL_ZONE_ID = ZoneId.of("Asia/Seoul");
+    private static final LocalDate TODAY = LocalDate.of(2026, 4, 28);
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -36,6 +45,15 @@ class PlayerControllerTest {
 
     @Autowired
     private JwtAccessTokenFactory jwtAccessTokenFactory;
+
+    @MockitoBean
+    private Clock clock;
+
+    @BeforeEach
+    void setUpClock() {
+        given(clock.instant()).willReturn(Instant.parse("2026-04-28T03:00:00Z"));
+        given(clock.getZone()).willReturn(SEOUL_ZONE_ID);
+    }
 
     @Test
     void players는_accessToken이_없으면_401을_반환한다() throws Exception {
@@ -72,7 +90,7 @@ class PlayerControllerTest {
 
     private void insertPlayerAndProfile() {
         LocalDateTime now = LocalDateTime.of(2026, 4, 28, 12, 0);
-        int dateId = DateIds.from(LocalDate.now());
+        int dateId = DateIds.from(TODAY);
 
         jdbcTemplate.update("""
                 insert into player (player_id, player_name, player_type, position_code, status, created_at, updated_at)

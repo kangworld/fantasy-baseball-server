@@ -6,6 +6,7 @@ import java.util.stream.Stream;
 
 import org.springframework.stereotype.Service;
 
+import com.kangworld.fantasybaseball.common.time.FantasyTime;
 import com.kangworld.fantasybaseball.external.kbo.model.KboGameRecord;
 import com.kangworld.fantasybaseball.external.kbo.model.KboGameStatus;
 import com.kangworld.fantasybaseball.external.kbo.model.KboScheduleGame;
@@ -23,10 +24,11 @@ public class GameServiceImpl implements GameService {
 
     private final KboScheduleFetchService scheduleFetchService;
     private final KboGameRecordFetchService gameRecordFetchService;
+    private final FantasyTime fantasyTime;
 
     @Override
     public List<GameScheduleResponse> findSchedule(LocalDate date, KboGameStatus status) {
-        LocalDate targetDate = date == null ? LocalDate.now() : date;
+        LocalDate targetDate = date == null ? fantasyTime.now() : date;
 
         return scheduleFetchService.fetch(targetDate).stream()
                 .filter(game -> status == null || game.getStatus() == status)
@@ -37,7 +39,7 @@ public class GameServiceImpl implements GameService {
     @Override
     public List<PlayerRecordResponse> findTodayPlayerRecords() {
         // 실시간 기록은 당일 경기 중 기록 확인용이므로 record 동기화 대상 경기만 조회한다.
-        return scheduleFetchService.findRecordTargetGames(LocalDate.now()).stream()
+        return scheduleFetchService.findRecordTargetGames(fantasyTime.now()).stream()
                 .map(KboScheduleGame::getGameId)
                 .map(gameRecordFetchService::fetch)
                 .flatMap(this::toPlayerRecords)
