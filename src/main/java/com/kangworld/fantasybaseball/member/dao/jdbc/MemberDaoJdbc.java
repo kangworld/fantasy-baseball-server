@@ -33,16 +33,7 @@ public class MemberDaoJdbc implements MemberDao {
     @Override
     public Optional<Member> findByMemberId(long memberId) {
         String sql = """
-                select
-                    member_id,
-                    email,
-                    password_hash,
-                    display_name,
-                    role,
-                    status,
-                    email_verified,
-                    created_at,
-                    updated_at
+                select *
                 from member
                 where member_id = :memberId
                 """;
@@ -63,16 +54,7 @@ public class MemberDaoJdbc implements MemberDao {
     @Override
     public Optional<Member> findByEmail(String email) {
         String sql = """
-                select
-                    member_id,
-                    email,
-                    password_hash,
-                    display_name,
-                    role,
-                    status,
-                    email_verified,
-                    created_at,
-                    updated_at
+                select *
                 from member
                 where email = :email
                 """;
@@ -94,16 +76,8 @@ public class MemberDaoJdbc implements MemberDao {
     @Override
     public long insert(Member member) {
         String sql = """
-                insert into member (
-                    email,
-                    password_hash,
-                    display_name,
-                    role,
-                    status,
-                    email_verified,
-                    created_at,
-                    updated_at
-                ) values (
+                insert into member values (
+                    default,
                     :email,
                     :passwordHash,
                     :displayName,

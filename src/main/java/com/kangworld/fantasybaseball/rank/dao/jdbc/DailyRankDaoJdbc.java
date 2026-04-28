@@ -32,15 +32,7 @@ public class DailyRankDaoJdbc implements DailyRankDao {
             return;
 
         String sql = """
-                insert into daily_rank (
-                    date_id,
-                    rank_no,
-                    member_id,
-                    point,
-                    display_rank_no,
-                    created_at,
-                    updated_at
-                ) values (
+                insert into daily_rank values (
                     :dateId,
                     :rankNo,
                     :memberId,
@@ -61,7 +53,7 @@ public class DailyRankDaoJdbc implements DailyRankDao {
     @Override
     public List<DailyRank> findByDateId(int dateId) {
         String sql = """
-                select date_id, rank_no, member_id, point, display_rank_no, created_at, updated_at
+                select *
                 from daily_rank
                 where date_id = :dateId
                 order by rank_no asc
@@ -73,7 +65,7 @@ public class DailyRankDaoJdbc implements DailyRankDao {
     @Override
     public Optional<DailyRank> findByMemberIdAndDateId(long memberId, int dateId) {
         String sql = """
-                select date_id, rank_no, member_id, point, display_rank_no, created_at, updated_at
+                select *
                 from daily_rank
                 where member_id = :memberId
                   and date_id = :dateId

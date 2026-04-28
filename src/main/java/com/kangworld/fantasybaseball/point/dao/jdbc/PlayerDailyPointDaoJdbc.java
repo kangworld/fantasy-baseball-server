@@ -28,14 +28,7 @@ public class PlayerDailyPointDaoJdbc implements PlayerDailyPointDao {
             return;
 
         String sql = """
-                insert into player_daily_point (
-                    date_id,
-                    game_id,
-                    player_id,
-                    point,
-                    created_at,
-                    updated_at
-                ) values (
+                insert into player_daily_point values (
                     :dateId,
                     :gameId,
                     :playerId,

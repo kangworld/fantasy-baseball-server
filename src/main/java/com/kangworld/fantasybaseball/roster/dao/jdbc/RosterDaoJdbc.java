@@ -31,12 +31,8 @@ public class RosterDaoJdbc implements RosterDao {
     @Override
     public long insert(Roster roster) {
         String sql = """
-                insert into roster (
-                    member_id,
-                    date_id,
-                    created_at,
-                    updated_at
-                ) values (
+                insert into roster values (
+                    default,
                     :memberId,
                     :dateId,
                     :createdAt,
@@ -65,12 +61,7 @@ public class RosterDaoJdbc implements RosterDao {
     @Override
     public Optional<Roster> findByMemberIdAndDateId(long memberId, int dateId) {
         String sql = """
-                select
-                    roster_id,
-                    member_id,
-                    date_id,
-                    created_at,
-                    updated_at
+                select *
                 from roster
                 where member_id = :memberId
                   and date_id = :dateId

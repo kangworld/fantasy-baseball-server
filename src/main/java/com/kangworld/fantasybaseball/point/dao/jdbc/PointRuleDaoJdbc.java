@@ -29,7 +29,7 @@ public class PointRuleDaoJdbc implements PointRuleDao {
     @Override
     public List<PointRule> findAllActive() {
         String sql = """
-                select player_type, record_code, point, description, active
+                select *
                 from point_rule
                 where active = true
                 order by record_code asc

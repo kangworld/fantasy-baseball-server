@@ -32,15 +32,8 @@ public class RosterPlayerDaoJdbc implements RosterPlayerDao {
             return;
 
         String sql = """
-                insert into roster_player (
-                    roster_id,
-                    slot_no,
-                    player_id,
-                    player_type,
-                    position_code,
-                    created_at,
-                    updated_at
-                ) values (
+                insert into roster_player values (
+                    default,
                     :rosterId,
                     :slotNo,
                     :playerId,
@@ -61,15 +54,7 @@ public class RosterPlayerDaoJdbc implements RosterPlayerDao {
     @Override
     public List<RosterPlayer> findByRosterId(long rosterId) {
         String sql = """
-                select
-                    roster_player_id,
-                    roster_id,
-                    slot_no,
-                    player_id,
-                    player_type,
-                    position_code,
-                    created_at,
-                    updated_at
+                select *
                 from roster_player
                 where roster_id = :rosterId
                 order by slot_no asc

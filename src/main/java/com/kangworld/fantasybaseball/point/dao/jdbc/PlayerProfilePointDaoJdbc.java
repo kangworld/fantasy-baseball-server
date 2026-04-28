@@ -26,17 +26,7 @@ public class PlayerProfilePointDaoJdbc implements PlayerProfilePointDao {
     @Override
     public List<PlayerProfile> findByDateId(int dateId) {
         String sql = """
-                select
-                    date_id,
-                    player_id,
-                    team_code,
-                    pos,
-                    cost,
-                    point,
-                    avg_point,
-                    point_game_count,
-                    created_at,
-                    updated_at
+                select *
                 from player_profile
                 where date_id = :dateId
                 order by player_id asc
@@ -51,18 +41,7 @@ public class PlayerProfilePointDaoJdbc implements PlayerProfilePointDao {
             return;
 
         String sql = """
-                insert into player_profile (
-                    date_id,
-                    player_id,
-                    team_code,
-                    pos,
-                    cost,
-                    point,
-                    avg_point,
-                    point_game_count,
-                    created_at,
-                    updated_at
-                ) values (
+                insert into player_profile values (
                     :dateId,
                     :playerId,
                     :teamCode,
