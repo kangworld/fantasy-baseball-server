@@ -17,6 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.kangworld.fantasybaseball.common.date.DateIds;
 import com.kangworld.fantasybaseball.common.time.FantasyTime;
 import com.kangworld.fantasybaseball.game.dao.GameDao;
+import com.kangworld.fantasybaseball.game.service.GameService;
+import com.kangworld.fantasybaseball.game.service.dto.PlayerRecordResponse;
 import com.kangworld.fantasybaseball.player.dao.PlayerDao;
 import com.kangworld.fantasybaseball.player.model.PlayerPosition;
 import com.kangworld.fantasybaseball.player.model.PlayerSummary;
@@ -62,6 +64,7 @@ public class RosterServiceImpl implements RosterService {
     private final PlayerDao playerDao;
     private final GameDao gameDao;
     private final FantasyTime fantasyTime;
+    private final GameService gameService;
 
     @Override
     @Transactional
@@ -129,6 +132,24 @@ public class RosterServiceImpl implements RosterService {
         return rosterDao.findByMemberIdAndDateId(memberId, dateId)
                 .map(roster -> toResponse(roster, date))
                 .orElse(null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PlayerRecordResponse> findMyPlayerRecords(long memberId) {
+        int dateId = DateIds.from(fantasyTime.now());
+
+        return rosterDao.findByMemberIdAndDateId(memberId, dateId)
+                .map(this::findRosterPlayerRecords)
+                .orElse(List.of());
+    }
+
+    private List<PlayerRecordResponse> findRosterPlayerRecords(Roster roster) {
+        Set<Long> playerIds = rosterPlayerDao.findByRosterId(roster.getRosterId()).stream()
+                .map(RosterPlayer::getPlayerId)
+                .collect(Collectors.toSet());
+
+        return gameService.findTodayPlayerRecordsByPlayerIds(playerIds);
     }
 
     private Map<Long, PlayerSummary> validateAndLoadPlayers(int dateId, List<RosterPlayerRequest> players) {

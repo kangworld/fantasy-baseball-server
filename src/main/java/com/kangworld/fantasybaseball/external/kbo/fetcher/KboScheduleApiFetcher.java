@@ -11,6 +11,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.kangworld.fantasybaseball.external.kbo.model.KboGameStatusMapper;
 import com.kangworld.fantasybaseball.external.kbo.model.KboScheduleGame;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 @Component
@@ -29,8 +30,8 @@ public class KboScheduleApiFetcher implements KboScheduleFetcher {
                         .path("/schedule/games")
                         .queryParam("fields", "basic,schedule,baseball,manualRelayUrl")
                         .queryParam("upperCategoryId", "kbaseball")
-                        .queryParam("fromDate", fromDate)
-                        .queryParam("toDate", toDate)
+                        .queryParam("fromDate", fromDate.toString())
+                        .queryParam("toDate", toDate.toString())
                         .queryParam("size", 500)
                         .build())
                 .retrieve()
@@ -64,16 +65,19 @@ public class KboScheduleApiFetcher implements KboScheduleFetcher {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
+    @Getter
     private static class ScheduleResponse {
         private ScheduleResult result;
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
+    @Getter
     private static class ScheduleResult {
         private List<ScheduleGameResponse> games;
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
+    @Getter
     private static class ScheduleGameResponse {
         private String gameId;
         private String categoryId;

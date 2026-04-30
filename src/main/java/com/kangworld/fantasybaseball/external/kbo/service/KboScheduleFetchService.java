@@ -34,20 +34,6 @@ public class KboScheduleFetchService {
         return scheduleCache.get(date);
     }
 
-    public List<KboScheduleGame> findRecordTargetGames(LocalDate date) {
-        // 기록 수집은 경기 중, 종료, 서스펜디드만 대상으로 잡아 불필요한 record 호출을 줄인다.
-        return fetch(date).stream()
-                .filter(game -> game.getStatus().supportsRecordSync())
-                .toList();
-    }
-
-    public List<KboScheduleGame> findLiveGames(LocalDate date) {
-        // polling은 진행 중 경기만 대상으로 잡아 15초 주기 호출 범위를 최소화.
-        return fetch(date).stream()
-                .filter(game -> game.getStatus().isLive())
-                .toList();
-    }
-
     private List<KboScheduleGame> loadByDate(LocalDate date) {
         // 일정 API는 날짜 단위 조회라서 캐시 key도 날짜 하나로 고정.
         return List.copyOf(scheduleFetcher.fetch(date, date));

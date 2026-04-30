@@ -1,8 +1,10 @@
 package com.kangworld.fantasybaseball.roster.api;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -33,6 +35,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kangworld.fantasybaseball.auth.token.JwtAccessTokenFactory;
 import com.kangworld.fantasybaseball.common.date.DateIds;
+import com.kangworld.fantasybaseball.game.service.GameService;
+import com.kangworld.fantasybaseball.game.service.dto.PlayerRecordResponse;
+import com.kangworld.fantasybaseball.player.model.PlayerType;
 import com.kangworld.rediscore.lock.RedisLock;
 import com.kangworld.rediscore.lock.RedisLockManager;
 
@@ -69,6 +74,9 @@ class RosterControllerTest {
 
     @MockitoBean
     private Clock clock;
+
+    @MockitoBean
+    private GameService gameService;
 
     @BeforeEach
     void setUp() {
@@ -142,6 +150,45 @@ class RosterControllerTest {
                         .param("date", ROSTER_DATE.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").doesNotExist());
+    }
+
+    @Test
+    void rosters_me_playerRecords는_제출_로스터_선수들의_기록을_반환한다() throws Exception {
+        // given
+        insertRosterPlayers(defaultPlayerIds());
+        String accessToken = jwtAccessTokenFactory.create(1L, "USER");
+        String requestBody = objectMapper.writeValueAsString(rosterRequest(defaultPlayerIds()));
+        mockMvc.perform(post("/api/rosters/me")
+                .header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestBody));
+        given(gameService.findTodayPlayerRecordsByPlayerIds(argThat(playerIds ->
+                playerIds.size() == 14 && playerIds.contains(101L) && playerIds.contains(114L))))
+                .willReturn(List.of(buildPlayerRecord(101L)));
+
+        // when then
+        mockMvc.perform(get("/api/rosters/me/player-records")
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].playerId").value(101))
+                .andExpect(jsonPath("$.data[0].playerType").value("BATTER"));
+    }
+
+    @Test
+    void rosters_me_playerRecords는_제출_로스터가_없으면_빈_배열을_반환한다() throws Exception {
+        // given
+        String accessToken = jwtAccessTokenFactory.create(1L, "USER");
+
+        // when then
+        mockMvc.perform(get("/api/rosters/me/player-records")
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.length()").value(0));
+
+        verifyNoInteractions(gameService);
     }
 
     @Test
@@ -299,6 +346,19 @@ class RosterControllerTest {
                 insert into game (start_at, home_team_code, away_team_code, game_status, created_at, updated_at)
                 values (?, ?, ?, ?, ?, ?)
                 """, now.minusMinutes(10), homeTeamCode, awayTeamCode, "PLAYING", now, now);
+    }
+
+    private PlayerRecordResponse buildPlayerRecord(long playerId) {
+
+        return PlayerRecordResponse.builder()
+                .gameId("game-1")
+                .playerId(playerId)
+                .name("선수" + playerId)
+                .playerType(PlayerType.BATTER)
+                .pos("C")
+                .ab(4)
+                .hit(2)
+                .build();
     }
 
     private List<Long> defaultPlayerIds() {

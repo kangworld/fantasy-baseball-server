@@ -9,6 +9,7 @@ public class KboLiveGameState {
 
     private String gameId;
     private KboGameStatus status;
+    private String statusCode;
     private String statusInfo;
     private String currentInning;
     private int homeTeamScore;

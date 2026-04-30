@@ -1,6 +1,7 @@
 package com.kangworld.fantasybaseball.roster.api;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.kangworld.fantasybaseball.auth.security.AuthenticatedMember;
 import com.kangworld.fantasybaseball.common.api.ApiResponse;
+import com.kangworld.fantasybaseball.game.service.dto.PlayerRecordResponse;
 import com.kangworld.fantasybaseball.roster.service.RosterService;
 import com.kangworld.fantasybaseball.roster.service.dto.RosterResponse;
 import com.kangworld.fantasybaseball.roster.service.dto.RosterSubmitRequest;
@@ -54,6 +56,13 @@ public class RosterController {
             @RequestParam LocalDate date) {
 
         return ApiResponse.ok(rosterService.find(authenticatedMember.getMemberId(), date));
+    }
+
+    @GetMapping("/player-records")
+    public ApiResponse<List<PlayerRecordResponse>> findPlayerRecords(
+            @AuthenticationPrincipal AuthenticatedMember authenticatedMember) {
+
+        return ApiResponse.ok(rosterService.findMyPlayerRecords(authenticatedMember.getMemberId()));
     }
 
 }

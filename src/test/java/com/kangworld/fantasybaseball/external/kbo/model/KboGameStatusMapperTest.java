@@ -36,6 +36,15 @@ class KboGameStatusMapperTest {
     }
 
     @Test
+    void before는_READY로_매핑한다() {
+        // given when
+        KboGameStatus status = mapper.map("BEFORE", false, false);
+
+        // then
+        assertThat(status).isEqualTo(KboGameStatus.READY);
+    }
+
+    @Test
     void playing은_PLAYING으로_매핑한다() {
         // given when
         KboGameStatus status = mapper.map("PLAYING", false, false);

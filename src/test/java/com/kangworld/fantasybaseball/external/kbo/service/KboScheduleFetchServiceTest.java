@@ -38,47 +38,6 @@ class KboScheduleFetchServiceTest {
         assertThat(callCount.get()).isEqualTo(1);
     }
 
-    @Test
-    void liveGame필터는_PLAYING만_남긴다() {
-        // given
-        ManualTicker ticker = new ManualTicker();
-        KboScheduleFetcher fetcher = (fromDate, toDate) -> List.of(
-                buildGame("game-1", KboGameStatus.READY),
-                buildGame("game-2", KboGameStatus.PLAYING),
-                buildGame("game-3", KboGameStatus.FINISHED)
-        );
-
-        KboScheduleFetchService service = new KboScheduleFetchService(fetcher, buildProperties(), ticker);
-
-        // when
-        List<KboScheduleGame> liveGames = service.findLiveGames(LocalDate.of(2026, 4, 28));
-
-        // then
-        assertThat(liveGames).extracting(KboScheduleGame::getGameId)
-                .containsExactly("game-2");
-    }
-
-    @Test
-    void recordTarget필터는_진행중_종료_서스펜디드만_남긴다() {
-        // given
-        ManualTicker ticker = new ManualTicker();
-        KboScheduleFetcher fetcher = (fromDate, toDate) -> List.of(
-                buildGame("game-1", KboGameStatus.READY),
-                buildGame("game-2", KboGameStatus.PLAYING),
-                buildGame("game-3", KboGameStatus.FINISHED),
-                buildGame("game-4", KboGameStatus.SUSPENDED)
-        );
-
-        KboScheduleFetchService service = new KboScheduleFetchService(fetcher, buildProperties(), ticker);
-
-        // when
-        List<KboScheduleGame> targetGames = service.findRecordTargetGames(LocalDate.of(2026, 4, 28));
-
-        // then
-        assertThat(targetGames).extracting(KboScheduleGame::getGameId)
-                .containsExactly("game-2", "game-3", "game-4");
-    }
-
     private KboApiProperties buildProperties() {
         KboApiProperties properties = new KboApiProperties();
         properties.setScheduleCacheTtl(Duration.ofMinutes(10));

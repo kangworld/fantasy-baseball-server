@@ -26,9 +26,11 @@ import com.kangworld.fantasybaseball.auth.token.JwtAccessTokenFactory;
 import com.kangworld.fantasybaseball.external.kbo.model.KboBatterRecord;
 import com.kangworld.fantasybaseball.external.kbo.model.KboGameRecord;
 import com.kangworld.fantasybaseball.external.kbo.model.KboGameStatus;
+import com.kangworld.fantasybaseball.external.kbo.model.KboLiveGameState;
 import com.kangworld.fantasybaseball.external.kbo.model.KboPitcherRecord;
 import com.kangworld.fantasybaseball.external.kbo.model.KboScheduleGame;
 import com.kangworld.fantasybaseball.external.kbo.service.KboGameRecordFetchService;
+import com.kangworld.fantasybaseball.external.kbo.service.KboLiveGameStateFetchService;
 import com.kangworld.fantasybaseball.external.kbo.service.KboScheduleFetchService;
 
 @SpringBootTest
@@ -52,6 +54,9 @@ class GameControllerTest {
     private KboGameRecordFetchService gameRecordFetchService;
 
     @MockitoBean
+    private KboLiveGameStateFetchService liveGameStateFetchService;
+
+    @MockitoBean
     private Clock clock;
 
     @BeforeEach
@@ -70,7 +75,7 @@ class GameControllerTest {
     }
 
     @Test
-    void schedule은_날짜와_상태로_경기일정을_조회한다() throws Exception {
+    void schedule은_날짜로_경기일정을_조회하고_상태별로_필터링하지_않는다() throws Exception {
         // given
         LocalDate date = LocalDate.of(2026, 4, 28);
         String accessToken = jwtAccessTokenFactory.create(1L, "USER");
@@ -82,24 +87,76 @@ class GameControllerTest {
         // when then
         mockMvc.perform(get("/api/games/schedule")
                         .header("Authorization", "Bearer " + accessToken)
-                        .param("date", "2026-04-28")
-                        .param("status", "PLAYING"))
+                        .param("date", "2026-04-28"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
-                .andExpect(jsonPath("$.data[0].gameId").value("game-2"))
-                .andExpect(jsonPath("$.data[0].status").value("PLAYING"))
-                .andExpect(jsonPath("$.data[0].statusCode").value("STARTED"))
-                .andExpect(jsonPath("$.data[0].statusInfo").value("경기중"))
+                .andExpect(jsonPath("$.data.length()").value(2))
+                .andExpect(jsonPath("$.data[0].gameId").value("game-1"))
+                .andExpect(jsonPath("$.data[0].status").value("READY"))
+                .andExpect(jsonPath("$.data[1].gameId").value("game-2"))
+                .andExpect(jsonPath("$.data[1].status").value("PLAYING"))
+                .andExpect(jsonPath("$.data[1].statusCode").value("PLAYING"))
+                .andExpect(jsonPath("$.data[1].statusInfo").value("경기중"))
                 .andExpect(jsonPath("$.data[0].homeTeamCode").value("KT"))
                 .andExpect(jsonPath("$.data[0].awayTeamCode").value("LG"));
+    }
+
+    @Test
+    void liveStates는_오늘_전체_경기의_실시간_상태를_반환한다() throws Exception {
+        // given
+        String accessToken = jwtAccessTokenFactory.create(1L, "USER");
+        doReturn(List.of(
+                buildScheduleGame("game-1", KboGameStatus.READY),
+                buildScheduleGame("game-2", KboGameStatus.PLAYING)
+        )).when(scheduleFetchService).fetch(TODAY);
+        doReturn(buildLiveState("game-1", "경기전", null)).when(liveGameStateFetchService).fetch("game-1");
+        doReturn(buildLiveState("game-2")).when(liveGameStateFetchService).fetch("game-2");
+
+        // when then
+        mockMvc.perform(get("/api/games/live-states")
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.length()").value(2))
+                .andExpect(jsonPath("$.data[0].gameId").value("game-1"))
+                .andExpect(jsonPath("$.data[0].statusInfo").value("경기전"))
+                .andExpect(jsonPath("$.data[0].statusCode").value("BEFORE"))
+                .andExpect(jsonPath("$.data[1].gameId").value("game-2"))
+                .andExpect(jsonPath("$.data[1].status").value("PLAYING"))
+                .andExpect(jsonPath("$.data[1].statusCode").value("PLAYING"))
+                .andExpect(jsonPath("$.data[1].inning").value(6))
+                .andExpect(jsonPath("$.data[1].topInning").value(true))
+                .andExpect(jsonPath("$.data[1].homeTeamScore").value(3))
+                .andExpect(jsonPath("$.data[1].awayTeamScore").value(4));
+    }
+
+    @Test
+    void liveState는_단일_경기의_실시간_상태를_반환한다() throws Exception {
+        // given
+        String accessToken = jwtAccessTokenFactory.create(1L, "USER");
+        doReturn(buildLiveState("game-2")).when(liveGameStateFetchService).fetch("game-2");
+
+        // when then
+        mockMvc.perform(get("/api/games/game-2/live-state")
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.gameId").value("game-2"))
+                .andExpect(jsonPath("$.data.status").value("PLAYING"))
+                .andExpect(jsonPath("$.data.statusCode").value("PLAYING"))
+                .andExpect(jsonPath("$.data.statusInfo").value("6회초"))
+                .andExpect(jsonPath("$.data.inning").value(6))
+                .andExpect(jsonPath("$.data.topInning").value(true));
     }
 
     @Test
     void playerRecords는_당일_경기기록을_타자와_투수_단일_배열로_반환한다() throws Exception {
         // given
         String accessToken = jwtAccessTokenFactory.create(1L, "USER");
-        doReturn(List.of(buildScheduleGame("game-2", KboGameStatus.PLAYING)))
-                .when(scheduleFetchService).findRecordTargetGames(TODAY);
+        doReturn(List.of(
+                buildScheduleGame("game-1", KboGameStatus.READY),
+                buildScheduleGame("game-2", KboGameStatus.PLAYING)
+        )).when(scheduleFetchService).fetch(TODAY);
         doReturn(buildGameRecord()).when(gameRecordFetchService).fetch("game-2");
 
         // when then
@@ -125,7 +182,7 @@ class GameControllerTest {
                 .gameId(gameId)
                 .startAt(LocalDateTime.of(2026, 4, 28, 18, 30))
                 .status(status)
-                .statusCode(status == KboGameStatus.PLAYING ? "STARTED" : "BEFORE")
+                .statusCode(status == KboGameStatus.PLAYING ? "PLAYING" : "BEFORE")
                 .statusInfo(status == KboGameStatus.PLAYING ? "경기중" : "경기전")
                 .homeTeamCode("KT")
                 .homeTeamName("KT")
@@ -163,6 +220,24 @@ class GameControllerTest {
                         .hr(0)
                         .bf(24)
                         .build()))
+                .build();
+    }
+
+    private KboLiveGameState buildLiveState(String gameId) {
+        return buildLiveState(gameId, "6회초", "6초");
+    }
+
+    private KboLiveGameState buildLiveState(String gameId, String statusInfo, String currentInning) {
+        return KboLiveGameState.builder()
+                .gameId(gameId)
+                .status(KboGameStatus.PLAYING)
+                .statusCode(currentInning == null ? "BEFORE" : "PLAYING")
+                .statusInfo(statusInfo)
+                .currentInning(currentInning)
+                .homeTeamScore(3)
+                .awayTeamScore(4)
+                .homeTeamCode("KT")
+                .awayTeamCode("LG")
                 .build();
     }
 

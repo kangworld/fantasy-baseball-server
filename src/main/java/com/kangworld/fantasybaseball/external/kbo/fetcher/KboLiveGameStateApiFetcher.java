@@ -8,6 +8,7 @@ import com.kangworld.fantasybaseball.external.kbo.model.KboGameStatus;
 import com.kangworld.fantasybaseball.external.kbo.model.KboGameStatusMapper;
 import com.kangworld.fantasybaseball.external.kbo.model.KboLiveGameState;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 @Component
@@ -36,6 +37,7 @@ public class KboLiveGameStateApiFetcher implements KboLiveGameStateFetcher {
         return KboLiveGameState.builder()
                 .gameId(game.gameId)
                 .status(gameStatusMapper.map(game.statusCode, game.cancel, game.suspended))
+                .statusCode(game.statusCode)
                 .statusInfo(game.statusInfo)
                 .currentInning(game.currentInning)
                 .homeTeamScore(game.homeTeamScore)
@@ -46,16 +48,19 @@ public class KboLiveGameStateApiFetcher implements KboLiveGameStateFetcher {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
+    @Getter
     private static class PollingResponse {
         private PollingResult result;
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
+    @Getter
     private static class PollingResult {
         private PollingGameResponse game;
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
+    @Getter
     private static class PollingGameResponse {
         private String gameId;
         private String statusCode;

@@ -9,12 +9,4 @@ public enum KboGameStatus {
     SUSPENDED,
     UNKNOWN;
 
-    public boolean isLive() {
-        return this == PLAYING;
-    }
-
-    public boolean supportsRecordSync() {
-        return this == PLAYING || this == FINISHED || this == SUSPENDED;
-    }
-
 }
