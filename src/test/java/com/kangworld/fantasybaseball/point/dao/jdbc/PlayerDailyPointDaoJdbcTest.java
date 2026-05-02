@@ -43,7 +43,6 @@ class PlayerDailyPointDaoJdbcTest {
 
         assertThat(pointByPlayerId).containsEntry(72443L, 15);
         assertThat(pointByPlayerId).containsEntry(65320L, 20);
-        assertThat(playerDailyPointDao.sumPointByPlayerIds(20260506, Set.of(72443L, 65320L, 1L))).isEqualTo(35);
     }
 
     private PlayerDailyPoint point(int dateId, String gameId, long playerId, int point) {

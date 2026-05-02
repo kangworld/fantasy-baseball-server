@@ -4,6 +4,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -82,6 +83,18 @@ public class RosterDaoJdbc implements RosterDao {
 
             return Optional.empty();
         }
+    }
+
+    @Override
+    public List<Roster> findByDateId(int dateId) {
+        String sql = """
+                select *
+                from roster
+                where date_id = :dateId
+                order by member_id asc
+                """;
+
+        return namedParameterJdbcTemplate.query(sql, Map.of("dateId", dateId), ROSTER_ROW_MAPPER);
     }
 
     @Override

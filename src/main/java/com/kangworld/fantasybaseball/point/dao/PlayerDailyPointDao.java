@@ -12,6 +12,4 @@ public interface PlayerDailyPointDao {
 
     Map<Long, Integer> findPointByPlayerIds(int dateId, Set<Long> playerIds);
 
-    int sumPointByPlayerIds(int dateId, Set<Long> playerIds);
-
 }

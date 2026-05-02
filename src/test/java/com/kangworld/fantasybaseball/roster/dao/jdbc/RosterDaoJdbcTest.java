@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
@@ -53,6 +54,21 @@ class RosterDaoJdbcTest {
         // when then
         assertThatThrownBy(() -> rosterDao.insert(roster))
                 .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void findByDateId는_해당_날짜의_로스터를_회원_id_순서로_조회한다() {
+        // given
+        rosterDao.insert(buildRoster(20L, 20260504));
+        rosterDao.insert(buildRoster(10L, 20260504));
+        rosterDao.insert(buildRoster(30L, 20260505));
+
+        // when
+        List<Roster> rosters = rosterDao.findByDateId(20260504);
+
+        // then
+        assertThat(rosters).extracting(Roster::getMemberId)
+                .containsExactly(10L, 20L);
     }
 
     private Roster buildRoster(long memberId, int dateId) {

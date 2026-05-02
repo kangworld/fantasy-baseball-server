@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,6 +56,28 @@ class RosterPlayerDaoJdbcTest {
     }
 
     @Test
+    void findByRosterIds는_여러_로스터_선수를_한번에_조회한다() {
+        // given
+        long firstRosterId = insertRoster(1L);
+        long secondRosterId = insertRoster(2L);
+        long otherRosterId = insertRoster(3L);
+        rosterPlayerDao.insertAll(List.of(
+                buildPlayer(firstRosterId, 1, 100L, PlayerType.BATTER, PlayerPosition.DH),
+                buildPlayer(secondRosterId, 1, 200L, PlayerType.BATTER, PlayerPosition.C),
+                buildPlayer(otherRosterId, 1, 300L, PlayerType.PITCHER, PlayerPosition.P)
+        ));
+
+        // when
+        List<RosterPlayer> players = rosterPlayerDao.findByRosterIds(Set.of(firstRosterId, secondRosterId));
+
+        // then
+        assertThat(players).extracting(RosterPlayer::getRosterId)
+                .containsExactly(firstRosterId, secondRosterId);
+        assertThat(players).extracting(RosterPlayer::getPlayerId)
+                .containsExactly(100L, 200L);
+    }
+
+    @Test
     void insertAll은_같은_로스터에서_slotNo를_중복_저장할_수_없다() {
         // given
         long rosterId = insertRoster();
@@ -83,10 +106,14 @@ class RosterPlayerDaoJdbcTest {
     }
 
     private long insertRoster() {
+        return insertRoster(1L);
+    }
+
+    private long insertRoster(long memberId) {
         LocalDateTime now = LocalDateTime.of(2026, 5, 4, 10, 0);
 
         return rosterDao.insert(Roster.builder()
-                .memberId(1L)
+                .memberId(memberId)
                 .dateId(20260504)
                 .createdAt(now)
                 .updatedAt(now)

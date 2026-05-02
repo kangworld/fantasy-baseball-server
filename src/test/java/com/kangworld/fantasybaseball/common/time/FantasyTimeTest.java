@@ -42,7 +42,6 @@ class FantasyTimeTest {
     }
 
     private Clock fixedClock(String instant) {
-
         return Clock.fixed(Instant.parse(instant), SEOUL_ZONE_ID);
     }
 

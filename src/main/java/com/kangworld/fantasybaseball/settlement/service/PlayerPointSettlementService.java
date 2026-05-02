@@ -1,4 +1,4 @@
-package com.kangworld.fantasybaseball.point.service;
+package com.kangworld.fantasybaseball.settlement.service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -15,21 +15,29 @@ import org.springframework.transaction.annotation.Transactional;
 import com.kangworld.fantasybaseball.common.date.DateIds;
 import com.kangworld.fantasybaseball.common.time.FantasyTime;
 import com.kangworld.fantasybaseball.external.kbo.model.KboGameRecord;
+import com.kangworld.fantasybaseball.external.kbo.model.KboGameStatus;
+import com.kangworld.fantasybaseball.external.kbo.model.KboScheduleGame;
+import com.kangworld.fantasybaseball.external.kbo.service.KboGameRecordFetchService;
+import com.kangworld.fantasybaseball.external.kbo.service.KboScheduleFetchService;
 import com.kangworld.fantasybaseball.player.model.PlayerProfile;
 import com.kangworld.fantasybaseball.player.model.PlayerType;
-import com.kangworld.fantasybaseball.point.dao.PointRuleDao;
 import com.kangworld.fantasybaseball.point.dao.PlayerDailyPointDao;
 import com.kangworld.fantasybaseball.point.dao.PlayerProfilePointDao;
+import com.kangworld.fantasybaseball.point.dao.PointRuleDao;
 import com.kangworld.fantasybaseball.point.model.CalculatedPlayerPoint;
-import com.kangworld.fantasybaseball.point.model.PointRule;
 import com.kangworld.fantasybaseball.point.model.PlayerDailyPoint;
+import com.kangworld.fantasybaseball.point.model.PointRule;
+import com.kangworld.fantasybaseball.point.service.PlayerGameRecordMapper;
+import com.kangworld.fantasybaseball.point.service.PointCalculator;
 
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class PlayerProfilePointBuildService {
+public class PlayerPointSettlementService {
 
+    private final KboScheduleFetchService scheduleFetchService;
+    private final KboGameRecordFetchService gameRecordFetchService;
     private final PointRuleDao pointRuleDao;
     private final PlayerDailyPointDao playerDailyPointDao;
     private final PlayerProfilePointDao playerProfilePointDao;
@@ -38,8 +46,25 @@ public class PlayerProfilePointBuildService {
     private final FantasyTime fantasyTime;
 
     @Transactional
-    public void build(LocalDate targetDate, List<KboGameRecord> gameRecords) {
-        // 하루치 record API 결과를 선수 일간 포인트와 프로필 누적값으로 반영
+    public void settle(LocalDate targetDate) {
+        // 정산은 완료 또는 서스펜디드 경기만 확정 데이터로 보고, 진행 중 경기는 실시간 조회에만 사용한다.
+        List<KboGameRecord> gameRecords = scheduleFetchService.fetch(targetDate).stream()
+                .filter(this::isSettlementTarget)
+                .map(KboScheduleGame::getGameId)
+                .map(gameRecordFetchService::fetch)
+                .toList();
+
+        applyGameRecords(targetDate, gameRecords);
+    }
+
+    private boolean isSettlementTarget(KboScheduleGame game) {
+        KboGameStatus status = game.getStatus();
+
+        return status == KboGameStatus.FINISHED || status == KboGameStatus.SUSPENDED;
+    }
+
+    private void applyGameRecords(LocalDate targetDate, List<KboGameRecord> gameRecords) {
+        // 하루치 record API 결과를 선수 일간 포인트와 프로필 누적값으로 반영한다.
         int dateId = DateIds.from(targetDate);
         LocalDateTime now = fantasyTime.getDateTime();
 
@@ -53,7 +78,7 @@ public class PlayerProfilePointBuildService {
             int dateId,
             List<KboGameRecord> gameRecords,
             LocalDateTime now) {
-        // 배점 룰은 한 번만 조회
+        // 배점 룰은 한 번만 조회한다.
         Map<PlayerType, List<PointRule>> rulesByType = pointRuleDao.findAllActive().stream()
                 .collect(Collectors.groupingBy(PointRule::getPlayerType));
         List<PointRule> batterRules = rulesByType.getOrDefault(PlayerType.BATTER, Collections.emptyList());
@@ -86,7 +111,7 @@ public class PlayerProfilePointBuildService {
             KboGameRecord gameRecord,
             List<PointRule> batterRules,
             List<PointRule> pitcherRules) {
-        // 같은 선수의 타자/투수 점수는 이후 playerId 기준으로 합산
+        // 같은 선수의 타자/투수 점수는 이후 playerId 기준으로 합산한다.
         Stream<CalculatedPlayerPoint> batterPoints = playerGameRecordMapper.toBatterRecords(gameRecord).stream()
                 .map(record -> pointCalculator.calculateBatter(record, batterRules));
 
@@ -100,11 +125,11 @@ public class PlayerProfilePointBuildService {
             LocalDate targetDate,
             List<PlayerDailyPoint> dailyPoints,
             LocalDateTime now) {
-        // 전날 프로필 이월 후 오늘 계산된 선수만 누적값 증가
+        // 전날 프로필 이월 후 오늘 계산된 선수만 누적값을 증가시킨다.
         int dateId = DateIds.from(targetDate);
         int previousDateId = DateIds.from(targetDate.minusDays(1));
 
-        // 같은 날 여러 점수 row가 있는 선수는 선수 단위 합산
+        // 같은 날 여러 점수 row가 있는 선수는 선수 단위로 합산한다.
         Map<Long, Integer> dailyPointByPlayerId = dailyPoints.stream()
                 .collect(Collectors.groupingBy(
                         PlayerDailyPoint::getPlayerId,
@@ -129,7 +154,7 @@ public class PlayerProfilePointBuildService {
             boolean appeared,
             LocalDateTime now) {
         int cumulativePoint = previous.getPoint() + dailyPoint;
-        // 실제 계산 대상 등장 횟수를 평균 분모로 사용
+        // 실제 계산 대상 등장 횟수를 평균 분모로 사용한다.
         int pointGameCount = previous.getPointGameCount() + (appeared ? 1 : 0);
 
         return PlayerProfile.builder()

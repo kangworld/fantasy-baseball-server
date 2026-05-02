@@ -4,6 +4,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -68,6 +69,25 @@ public class RosterPlayerDaoJdbc implements RosterPlayerDao {
     }
 
     @Override
+    public List<RosterPlayer> findByRosterIds(Set<Long> rosterIds) {
+        if (rosterIds.isEmpty())
+            return List.of();
+
+        String sql = """
+                select *
+                from roster_player
+                where roster_id in (:rosterIds)
+                order by roster_id asc, slot_no asc
+                """;
+
+        return namedParameterJdbcTemplate.query(
+                sql,
+                new MapSqlParameterSource("rosterIds", rosterIds),
+                ROSTER_PLAYER_ROW_MAPPER
+        );
+    }
+
+    @Override
     public void deleteByRosterId(long rosterId) {
         String sql = """
                 delete from roster_player
@@ -78,7 +98,6 @@ public class RosterPlayerDaoJdbc implements RosterPlayerDao {
     }
 
     private MapSqlParameterSource toParameterSource(RosterPlayer player) {
-
         return new MapSqlParameterSource()
                 .addValue("rosterId", player.getRosterId())
                 .addValue("slotNo", player.getSlotNo())
@@ -93,7 +112,6 @@ public class RosterPlayerDaoJdbc implements RosterPlayerDao {
 
         @Override
         public RosterPlayer mapRow(ResultSet rs, int rowNum) throws SQLException {
-
             return RosterPlayer.builder()
                     .rosterPlayerId(rs.getLong("roster_player_id"))
                     .rosterId(rs.getLong("roster_id"))

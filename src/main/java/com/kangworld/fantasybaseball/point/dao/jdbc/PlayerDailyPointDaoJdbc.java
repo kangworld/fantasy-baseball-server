@@ -71,26 +71,6 @@ public class PlayerDailyPointDaoJdbc implements PlayerDailyPointDao {
         ).stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
-    @Override
-    public int sumPointByPlayerIds(int dateId, Set<Long> playerIds) {
-        // player_daily_point는 선수 단위 최종 점수라 player_type 없이 합산
-        if (playerIds.isEmpty())
-            return 0;
-
-        String sql = """
-                select coalesce(sum(point), 0)
-                from player_daily_point
-                where date_id = :dateId
-                  and player_id in (:playerIds)
-                """;
-
-        MapSqlParameterSource parameters = new MapSqlParameterSource()
-                .addValue("dateId", dateId)
-                .addValue("playerIds", playerIds);
-
-        return namedParameterJdbcTemplate.queryForObject(sql, parameters, Integer.class);
-    }
-
     private MapSqlParameterSource toParameterSource(PlayerDailyPoint dailyPoint) {
         return new MapSqlParameterSource()
                 .addValue("dateId", dailyPoint.getDateId())
