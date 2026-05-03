@@ -20,7 +20,7 @@ public class SettlementScheduler {
     private final RankSettlementService rankSettlementService;
     private final FantasyTime fantasyTime;
 
-    @Scheduled(cron = "0 0 2 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "${settlement.schedule.daily-cron}", zone = "${settlement.schedule.zone}")
     @RedisLock(name = "settlement", key = "'daily'")
     public void doDailySettlement() {
         // 02:00 실행 시점은 아직 전날 판타지 날짜라 FantasyTime.now()를 그대로 정산 대상으로 쓴다.

@@ -50,14 +50,14 @@ class SettlementSchedulerTest {
     }
 
     @Test
-    void doDailySettlement는_새벽_2시_스케줄과_고정_락을_사용한다() throws NoSuchMethodException {
+    void doDailySettlement는_정산_스케줄_프로퍼티와_고정_락을_사용한다() throws NoSuchMethodException {
         // when
         Scheduled scheduled = SettlementScheduler.class.getMethod("doDailySettlement").getAnnotation(Scheduled.class);
         RedisLock redisLock = SettlementScheduler.class.getMethod("doDailySettlement").getAnnotation(RedisLock.class);
 
         // then
-        assertThat(scheduled.cron()).isEqualTo("0 0 2 * * *");
-        assertThat(scheduled.zone()).isEqualTo("Asia/Seoul");
+        assertThat(scheduled.cron()).isEqualTo("${settlement.schedule.daily-cron}");
+        assertThat(scheduled.zone()).isEqualTo("${settlement.schedule.zone}");
         assertThat(redisLock.name()).isEqualTo("settlement");
         assertThat(redisLock.key()).isEqualTo("'daily'");
     }

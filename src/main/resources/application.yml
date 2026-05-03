@@ -23,3 +23,8 @@ external:
     schedule-cache-ttl: 10m
     record-cache-ttl: 30s
     live-game-state-cache-ttl: 15s
+
+settlement:
+  schedule:
+    daily-cron: "${SETTLEMENT_DAILY_CRON:0 0 2 * * *}"
+    zone: "${SETTLEMENT_SCHEDULE_ZONE:Asia/Seoul}"
