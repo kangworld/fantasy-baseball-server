@@ -14,6 +14,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import com.kangworld.fantasybaseball.rank.dao.DailyRankDao;
+import com.kangworld.fantasybaseball.rank.dao.view.DailyRankView;
 import com.kangworld.fantasybaseball.rank.model.DailyRank;
 
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ import lombok.RequiredArgsConstructor;
 public class DailyRankDaoJdbc implements DailyRankDao {
 
     private static final RowMapper<DailyRank> ROW_MAPPER = new DailyRankRowMapper();
+    private static final RowMapper<DailyRankView> VIEW_ROW_MAPPER = new DailyRankViewRowMapper();
 
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
@@ -86,6 +88,47 @@ public class DailyRankDaoJdbc implements DailyRankDao {
     }
 
     @Override
+    public List<DailyRankView> findViewsByDateId(int dateId, int limit, int offset) {
+        String sql = """
+                select dr.rank_no, dr.display_rank_no, dr.member_id, m.display_name, dr.point
+                from daily_rank dr
+                join member m on m.member_id = dr.member_id
+                where dr.date_id = :dateId
+                order by dr.rank_no asc
+                limit :limit offset :offset
+                """;
+
+        return namedParameterJdbcTemplate.query(
+                sql,
+                Map.of("dateId", dateId, "limit", limit, "offset", offset),
+                VIEW_ROW_MAPPER
+        );
+    }
+
+    @Override
+    public Optional<DailyRankView> findViewByMemberIdAndDateId(long memberId, int dateId) {
+        String sql = """
+                select dr.rank_no, dr.display_rank_no, dr.member_id, m.display_name, dr.point
+                from daily_rank dr
+                join member m on m.member_id = dr.member_id
+                where dr.member_id = :memberId
+                  and dr.date_id = :dateId
+                """;
+
+        try {
+            DailyRankView rank = namedParameterJdbcTemplate.queryForObject(
+                    sql,
+                    Map.of("memberId", memberId, "dateId", dateId),
+                    VIEW_ROW_MAPPER
+            );
+
+            return Optional.ofNullable(rank);
+        } catch (EmptyResultDataAccessException exception) {
+            return Optional.empty();
+        }
+    }
+
+    @Override
     public void deleteByDateId(int dateId) {
         String sql = "delete from daily_rank where date_id = :dateId";
 
@@ -116,6 +159,21 @@ public class DailyRankDaoJdbc implements DailyRankDao {
                     .displayRankNo(rs.getInt("display_rank_no"))
                     .createdAt(rs.getTimestamp("created_at").toLocalDateTime())
                     .updatedAt(rs.getTimestamp("updated_at").toLocalDateTime())
+                    .build();
+        }
+
+    }
+
+    private static class DailyRankViewRowMapper implements RowMapper<DailyRankView> {
+
+        @Override
+        public DailyRankView mapRow(ResultSet rs, int rowNum) throws SQLException {
+            return DailyRankView.builder()
+                    .rankNo(rs.getInt("rank_no"))
+                    .displayRankNo(rs.getInt("display_rank_no"))
+                    .memberId(rs.getLong("member_id"))
+                    .displayName(rs.getString("display_name"))
+                    .point(rs.getInt("point"))
                     .build();
         }
 

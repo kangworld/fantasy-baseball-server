@@ -14,6 +14,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import com.kangworld.fantasybaseball.rank.dao.SeasonRankDao;
+import com.kangworld.fantasybaseball.rank.dao.view.SeasonRankView;
 import com.kangworld.fantasybaseball.rank.model.SeasonRank;
 
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ import lombok.RequiredArgsConstructor;
 public class SeasonRankDaoJdbc implements SeasonRankDao {
 
     private static final RowMapper<SeasonRank> ROW_MAPPER = new SeasonRankRowMapper();
+    private static final RowMapper<SeasonRankView> VIEW_ROW_MAPPER = new SeasonRankViewRowMapper();
 
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
@@ -88,6 +90,49 @@ public class SeasonRankDaoJdbc implements SeasonRankDao {
     }
 
     @Override
+    public List<SeasonRankView> findViewsByDateId(int dateId, int limit, int offset) {
+        String sql = """
+                select sr.rank_no, sr.display_rank_no, sr.previous_rank_no,
+                       sr.member_id, m.display_name, sr.point, sr.daily_point
+                from season_rank sr
+                join member m on m.member_id = sr.member_id
+                where sr.date_id = :dateId
+                order by sr.rank_no asc
+                limit :limit offset :offset
+                """;
+
+        return namedParameterJdbcTemplate.query(
+                sql,
+                Map.of("dateId", dateId, "limit", limit, "offset", offset),
+                VIEW_ROW_MAPPER
+        );
+    }
+
+    @Override
+    public Optional<SeasonRankView> findViewByMemberIdAndDateId(long memberId, int dateId) {
+        String sql = """
+                select sr.rank_no, sr.display_rank_no, sr.previous_rank_no,
+                       sr.member_id, m.display_name, sr.point, sr.daily_point
+                from season_rank sr
+                join member m on m.member_id = sr.member_id
+                where sr.member_id = :memberId
+                  and sr.date_id = :dateId
+                """;
+
+        try {
+            SeasonRankView rank = namedParameterJdbcTemplate.queryForObject(
+                    sql,
+                    Map.of("memberId", memberId, "dateId", dateId),
+                    VIEW_ROW_MAPPER
+            );
+
+            return Optional.ofNullable(rank);
+        } catch (EmptyResultDataAccessException exception) {
+            return Optional.empty();
+        }
+    }
+
+    @Override
     public void deleteByDateId(int dateId) {
         String sql = "delete from season_rank where date_id = :dateId";
 
@@ -122,6 +167,23 @@ public class SeasonRankDaoJdbc implements SeasonRankDao {
                     .previousRankNo(rs.getInt("previous_rank_no"))
                     .createdAt(rs.getTimestamp("created_at").toLocalDateTime())
                     .updatedAt(rs.getTimestamp("updated_at").toLocalDateTime())
+                    .build();
+        }
+
+    }
+
+    private static class SeasonRankViewRowMapper implements RowMapper<SeasonRankView> {
+
+        @Override
+        public SeasonRankView mapRow(ResultSet rs, int rowNum) throws SQLException {
+            return SeasonRankView.builder()
+                    .rankNo(rs.getInt("rank_no"))
+                    .displayRankNo(rs.getInt("display_rank_no"))
+                    .previousRankNo(rs.getInt("previous_rank_no"))
+                    .memberId(rs.getLong("member_id"))
+                    .displayName(rs.getString("display_name"))
+                    .point(rs.getInt("point"))
+                    .dailyPoint(rs.getInt("daily_point"))
                     .build();
         }
 
