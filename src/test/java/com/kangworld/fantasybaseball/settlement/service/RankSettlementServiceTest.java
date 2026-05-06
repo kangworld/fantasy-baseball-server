@@ -70,6 +70,10 @@ class RankSettlementServiceTest {
                 1L, -100,
                 2L, 50
         ));
+        given(dailyRankDao.findByDateId(20260510)).willReturn(List.of(
+                dailyRank(20260510, 1, 10L, 60, 1),
+                dailyRank(20260510, 2, 20L, 40, 2)
+        ));
         given(seasonRankDao.findByDateId(20260510)).willReturn(List.of(
                 seasonRank(20260510, 1, 10L, 1000, 1),
                 seasonRank(20260510, 2, 30L, 900, 2)
@@ -88,6 +92,8 @@ class RankSettlementServiceTest {
                 .containsExactly(20L, 10L);
         assertThat(dailyRanksCaptor.getValue()).extracting(DailyRank::getPoint)
                 .containsExactly(50, 0);
+        assertThat(dailyRanksCaptor.getValue()).extracting(DailyRank::getPreviousRankNo)
+                .containsExactly(2, 1);
 
         assertThat(seasonRanksCaptor.getValue()).extracting(SeasonRank::getMemberId)
                 .containsExactly(10L, 30L, 20L);
@@ -122,6 +128,7 @@ class RankSettlementServiceTest {
                 2L, 100,
                 3L, 90
         ));
+        given(dailyRankDao.findByDateId(20260510)).willReturn(List.of());
         given(seasonRankDao.findByDateId(20260510)).willReturn(List.of());
 
         // when
@@ -134,6 +141,8 @@ class RankSettlementServiceTest {
                 .containsExactly(1, 2, 3);
         assertThat(dailyRanksCaptor.getValue()).extracting(DailyRank::getDisplayRankNo)
                 .containsExactly(1, 1, 3);
+        assertThat(dailyRanksCaptor.getValue()).extracting(DailyRank::getPreviousRankNo)
+                .containsExactly(0, 0, 0);
     }
 
     private Roster roster(long rosterId, long memberId) {
@@ -151,6 +160,17 @@ class RankSettlementServiceTest {
                 .memberId(memberId)
                 .point(point)
                 .dailyPoint(0)
+                .displayRankNo(displayRankNo)
+                .previousRankNo(0)
+                .build();
+    }
+
+    private DailyRank dailyRank(int dateId, int rankNo, long memberId, int point, int displayRankNo) {
+        return DailyRank.builder()
+                .dateId(dateId)
+                .rankNo(rankNo)
+                .memberId(memberId)
+                .point(point)
                 .displayRankNo(displayRankNo)
                 .previousRankNo(0)
                 .build();

@@ -14,6 +14,7 @@ public class DailyRank {
     private long memberId;
     private int point;
     private int displayRankNo;
+    private int previousRankNo;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

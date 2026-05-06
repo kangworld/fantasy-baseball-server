@@ -65,6 +65,7 @@ class RankControllerTest {
                 .andExpect(jsonPath("$.data.date").value("2026-05-11"))
                 .andExpect(jsonPath("$.data.daily.point").value(120))
                 .andExpect(jsonPath("$.data.daily.displayRankNo").value(2))
+                .andExpect(jsonPath("$.data.daily.previousRankNo").value(6))
                 .andExpect(jsonPath("$.data.season.point").value(1020))
                 .andExpect(jsonPath("$.data.season.previousRankNo").value(7));
     }
@@ -85,6 +86,7 @@ class RankControllerTest {
                 .andExpect(jsonPath("$.data.size").value(20))
                 .andExpect(jsonPath("$.data.ranks[0].memberId").value(10))
                 .andExpect(jsonPath("$.data.ranks[0].displayName").value("강민구"))
+                .andExpect(jsonPath("$.data.ranks[0].previousRankNo").value(4))
                 .andExpect(jsonPath("$.data.ranks[0].point").value(150));
     }
 
@@ -142,6 +144,7 @@ class RankControllerTest {
                         .point(120)
                         .rankNo(3)
                         .displayRankNo(2)
+                        .previousRankNo(6)
                         .build())
                 .season(ScoreboardSeasonResponse.builder()
                         .point(1020)
@@ -161,6 +164,7 @@ class RankControllerTest {
                 .ranks(List.of(DailyRankItemResponse.builder()
                         .rankNo(1)
                         .displayRankNo(1)
+                        .previousRankNo(4)
                         .memberId(10L)
                         .displayName("강민구")
                         .point(150)

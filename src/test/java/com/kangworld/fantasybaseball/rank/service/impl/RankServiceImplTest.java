@@ -60,6 +60,7 @@ class RankServiceImplTest {
         assertThat(response.getDate()).isEqualTo(LocalDate.of(2026, 5, 11));
         assertThat(response.getDaily().getPoint()).isEqualTo(120);
         assertThat(response.getDaily().getDisplayRankNo()).isEqualTo(2);
+        assertThat(response.getDaily().getPreviousRankNo()).isEqualTo(6);
         assertThat(response.getSeason().getPoint()).isEqualTo(1020);
         assertThat(response.getSeason().getPreviousRankNo()).isEqualTo(7);
     }
@@ -78,6 +79,7 @@ class RankServiceImplTest {
         // then
         assertThat(first.getDaily().getPoint()).isZero();
         assertThat(first.getDaily().getRankNo()).isZero();
+        assertThat(first.getDaily().getPreviousRankNo()).isZero();
         assertThat(first.getSeason().getPoint()).isZero();
         assertThat(second.getSeason().getDisplayRankNo()).isZero();
         verify(dailyRankDao, times(2)).findViewByMemberIdAndDateId(1L, 20260511);
@@ -124,6 +126,7 @@ class RankServiceImplTest {
         return DailyRankView.builder()
                 .rankNo(rankNo)
                 .displayRankNo(displayRankNo)
+                .previousRankNo(6)
                 .memberId(memberId)
                 .displayName(displayName)
                 .point(point)

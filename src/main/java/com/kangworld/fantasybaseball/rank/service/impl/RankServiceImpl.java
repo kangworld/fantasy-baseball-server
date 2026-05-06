@@ -58,10 +58,10 @@ public class RankServiceImpl implements RankService {
         // 개인화 점수판은 회원 수만큼 캐시가 커지므로 초기 구현에서는 매번 필요한 row만 조회한다.
         ScoreboardDailyResponse daily = dailyRankDao.findViewByMemberIdAndDateId(memberId, dateId)
                 .map(ScoreboardDailyResponse::from)
-                .orElseGet(ScoreboardDailyResponse::zero);
+                .orElseGet(ScoreboardDailyResponse::empty);
         ScoreboardSeasonResponse season = seasonRankDao.findViewByMemberIdAndDateId(memberId, dateId)
                 .map(ScoreboardSeasonResponse::from)
-                .orElseGet(ScoreboardSeasonResponse::zero);
+                .orElseGet(ScoreboardSeasonResponse::empty);
 
         return ScoreboardResponse.builder()
                 .date(targetDate)

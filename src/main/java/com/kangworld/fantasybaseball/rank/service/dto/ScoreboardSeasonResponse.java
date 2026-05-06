@@ -25,7 +25,7 @@ public class ScoreboardSeasonResponse {
                 .build();
     }
 
-    public static ScoreboardSeasonResponse zero() {
+    public static ScoreboardSeasonResponse empty() {
         return ScoreboardSeasonResponse.builder()
                 .point(0)
                 .dailyPoint(0)

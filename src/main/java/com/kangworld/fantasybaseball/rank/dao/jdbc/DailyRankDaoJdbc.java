@@ -34,12 +34,22 @@ public class DailyRankDaoJdbc implements DailyRankDao {
             return;
 
         String sql = """
-                insert into daily_rank values (
+                insert into daily_rank (
+                    date_id,
+                    rank_no,
+                    member_id,
+                    point,
+                    display_rank_no,
+                    previous_rank_no,
+                    created_at,
+                    updated_at
+                ) values (
                     :dateId,
                     :rankNo,
                     :memberId,
                     :point,
                     :displayRankNo,
+                    :previousRankNo,
                     :createdAt,
                     :updatedAt
                 )
@@ -90,7 +100,7 @@ public class DailyRankDaoJdbc implements DailyRankDao {
     @Override
     public List<DailyRankView> findViewsByDateId(int dateId, int limit, int offset) {
         String sql = """
-                select dr.rank_no, dr.display_rank_no, dr.member_id, m.display_name, dr.point
+                select dr.rank_no, dr.display_rank_no, dr.previous_rank_no, dr.member_id, m.display_name, dr.point
                 from daily_rank dr
                 join member m on m.member_id = dr.member_id
                 where dr.date_id = :dateId
@@ -108,7 +118,7 @@ public class DailyRankDaoJdbc implements DailyRankDao {
     @Override
     public Optional<DailyRankView> findViewByMemberIdAndDateId(long memberId, int dateId) {
         String sql = """
-                select dr.rank_no, dr.display_rank_no, dr.member_id, m.display_name, dr.point
+                select dr.rank_no, dr.display_rank_no, dr.previous_rank_no, dr.member_id, m.display_name, dr.point
                 from daily_rank dr
                 join member m on m.member_id = dr.member_id
                 where dr.member_id = :memberId
@@ -142,6 +152,7 @@ public class DailyRankDaoJdbc implements DailyRankDao {
                 .addValue("memberId", rank.getMemberId())
                 .addValue("point", rank.getPoint())
                 .addValue("displayRankNo", rank.getDisplayRankNo())
+                .addValue("previousRankNo", rank.getPreviousRankNo())
                 .addValue("createdAt", Timestamp.valueOf(rank.getCreatedAt()))
                 .addValue("updatedAt", Timestamp.valueOf(rank.getUpdatedAt()));
     }
@@ -157,6 +168,7 @@ public class DailyRankDaoJdbc implements DailyRankDao {
                     .memberId(rs.getLong("member_id"))
                     .point(rs.getInt("point"))
                     .displayRankNo(rs.getInt("display_rank_no"))
+                    .previousRankNo(rs.getInt("previous_rank_no"))
                     .createdAt(rs.getTimestamp("created_at").toLocalDateTime())
                     .updatedAt(rs.getTimestamp("updated_at").toLocalDateTime())
                     .build();
@@ -171,6 +183,7 @@ public class DailyRankDaoJdbc implements DailyRankDao {
             return DailyRankView.builder()
                     .rankNo(rs.getInt("rank_no"))
                     .displayRankNo(rs.getInt("display_rank_no"))
+                    .previousRankNo(rs.getInt("previous_rank_no"))
                     .memberId(rs.getLong("member_id"))
                     .displayName(rs.getString("display_name"))
                     .point(rs.getInt("point"))

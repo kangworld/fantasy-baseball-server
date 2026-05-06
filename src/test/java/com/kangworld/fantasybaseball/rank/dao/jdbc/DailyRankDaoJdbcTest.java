@@ -45,6 +45,7 @@ class DailyRankDaoJdbcTest {
 
         assertThat(ranks).extracting(DailyRank::getRankNo).containsExactly(1, 2);
         assertThat(ranks).extracting(DailyRank::getMemberId).containsExactly(10L, 20L);
+        assertThat(ranks).extracting(DailyRank::getPreviousRankNo).containsExactly(0, 0);
         assertThat(memberRank).isPresent();
         assertThat(memberRank.get().getPoint()).isEqualTo(100);
     }
@@ -92,9 +93,9 @@ class DailyRankDaoJdbcTest {
         insertMember(20L, "김철수");
         insertMember(30L, "박영희");
         dailyRankDao.insertAll(List.of(
-                rank(20260508, 1, 10L, 100, 1),
-                rank(20260508, 2, 20L, 90, 2),
-                rank(20260508, 3, 30L, 80, 3)
+                rank(20260508, 1, 10L, 100, 1, 4),
+                rank(20260508, 2, 20L, 90, 2, 5),
+                rank(20260508, 3, 30L, 80, 3, 6)
         ));
 
         // when
@@ -103,13 +104,14 @@ class DailyRankDaoJdbcTest {
         // then
         assertThat(ranks).extracting(DailyRankView::getRankNo).containsExactly(2, 3);
         assertThat(ranks).extracting(DailyRankView::getDisplayName).containsExactly("김철수", "박영희");
+        assertThat(ranks).extracting(DailyRankView::getPreviousRankNo).containsExactly(5, 6);
     }
 
     @Test
     void findViewByMemberIdAndDateId는_회원_이름을_포함해_단건_조회한다() {
         // given
         insertMember(10L, "강민구");
-        dailyRankDao.insertAll(List.of(rank(20260508, 1, 10L, 100, 1)));
+        dailyRankDao.insertAll(List.of(rank(20260508, 1, 10L, 100, 1, 3)));
 
         // when
         Optional<DailyRankView> rank = dailyRankDao.findViewByMemberIdAndDateId(10L, 20260508);
@@ -118,6 +120,7 @@ class DailyRankDaoJdbcTest {
         assertThat(rank).isPresent();
         assertThat(rank.get().getDisplayName()).isEqualTo("강민구");
         assertThat(rank.get().getPoint()).isEqualTo(100);
+        assertThat(rank.get().getPreviousRankNo()).isEqualTo(3);
     }
 
     private void insertMember(long memberId, String displayName) {
@@ -128,6 +131,10 @@ class DailyRankDaoJdbcTest {
     }
 
     private DailyRank rank(int dateId, int rankNo, long memberId, int point, int displayRankNo) {
+        return rank(dateId, rankNo, memberId, point, displayRankNo, 0);
+    }
+
+    private DailyRank rank(int dateId, int rankNo, long memberId, int point, int displayRankNo, int previousRankNo) {
         LocalDateTime now = LocalDateTime.of(2026, 5, 8, 23, 0);
 
         return DailyRank.builder()
@@ -136,6 +143,7 @@ class DailyRankDaoJdbcTest {
                 .memberId(memberId)
                 .point(point)
                 .displayRankNo(displayRankNo)
+                .previousRankNo(previousRankNo)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();

@@ -39,14 +39,17 @@ public class RankSettlementService {
         int dateId = DateIds.from(targetDate);
         LocalDateTime now = fantasyTime.getDateTime();
 
-        List<DailyRank> dailyRanks = createDailyRanks(dateId, now);
+        List<DailyRank> dailyRanks = createDailyRanks(targetDate, now);
         dailyRankDao.insertAll(dailyRanks);
 
         List<SeasonRank> seasonRanks = createSeasonRanks(targetDate, dailyRanks, now);
         seasonRankDao.insertAll(seasonRanks);
     }
 
-    private List<DailyRank> createDailyRanks(int dateId, LocalDateTime now) {
+    private List<DailyRank> createDailyRanks(LocalDate targetDate, LocalDateTime now) {
+        int dateId = DateIds.from(targetDate);
+        int previousDateId = DateIds.from(targetDate.minusDays(1));
+        Map<Long, DailyRank> previousRankByMemberId = toDailyRankMap(dailyRankDao.findByDateId(previousDateId));
         List<Roster> rosters = rosterDao.findByDateId(dateId);
         Map<Long, Integer> pointByRosterId = rosterPointCalculator.calculateAll(dateId, rosters);
         List<MemberPoint> memberPoints = rosters.stream()
@@ -54,7 +57,7 @@ public class RankSettlementService {
                 .toList();
 
         return rankCalculator.calculate(memberPoints).stream()
-                .map(rank -> toDailyRank(dateId, rank, now))
+                .map(rank -> toDailyRank(dateId, rank, previousDisplayRankNo(rank, previousRankByMemberId), now))
                 .toList();
     }
 
@@ -100,16 +103,27 @@ public class RankSettlementService {
         return rankByMemberId;
     }
 
-    private DailyRank toDailyRank(int dateId, RankedMemberPoint rank, LocalDateTime now) {
+    private DailyRank toDailyRank(
+            int dateId,
+            RankedMemberPoint rank,
+            int previousRankNo,
+            LocalDateTime now) {
         return DailyRank.builder()
                 .dateId(dateId)
                 .rankNo(rank.rankNo())
                 .memberId(rank.memberId())
                 .point(rank.point())
                 .displayRankNo(rank.displayRankNo())
+                .previousRankNo(previousRankNo)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
+    }
+
+    private int previousDisplayRankNo(RankedMemberPoint rank, Map<Long, DailyRank> previousRankByMemberId) {
+        DailyRank previousRank = previousRankByMemberId.get(rank.memberId());
+
+        return previousRank == null ? 0 : previousRank.getDisplayRankNo();
     }
 
     private SeasonRank toSeasonRank(

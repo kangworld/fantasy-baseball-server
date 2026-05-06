@@ -4,6 +4,7 @@ create table if not exists daily_rank (
     member_id bigint not null,
     point int not null,
     display_rank_no int not null,
+    previous_rank_no int not null default 0,
     created_at timestamp not null,
     updated_at timestamp not null,
     primary key (date_id, rank_no),
