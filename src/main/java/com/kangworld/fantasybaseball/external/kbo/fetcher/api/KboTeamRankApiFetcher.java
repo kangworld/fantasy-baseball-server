@@ -1,4 +1,4 @@
-package com.kangworld.fantasybaseball.external.kbo.fetcher;
+package com.kangworld.fantasybaseball.external.kbo.fetcher.api;
 
 import java.util.List;
 
@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.kangworld.fantasybaseball.external.kbo.fetcher.KboTeamRankFetcher;
 import com.kangworld.fantasybaseball.external.kbo.model.KboTeamRank;
 
 import lombok.Getter;

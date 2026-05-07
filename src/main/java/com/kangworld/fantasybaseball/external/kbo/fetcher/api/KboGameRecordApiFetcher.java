@@ -1,4 +1,4 @@
-package com.kangworld.fantasybaseball.external.kbo.fetcher;
+package com.kangworld.fantasybaseball.external.kbo.fetcher.api;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -13,6 +13,7 @@ import org.springframework.web.client.RestClient;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.kangworld.fantasybaseball.external.kbo.fetcher.KboGameRecordFetcher;
 import com.kangworld.fantasybaseball.external.kbo.model.KboBatterRecord;
 import com.kangworld.fantasybaseball.external.kbo.model.KboEtcRecord;
 import com.kangworld.fantasybaseball.external.kbo.model.KboGameRecord;

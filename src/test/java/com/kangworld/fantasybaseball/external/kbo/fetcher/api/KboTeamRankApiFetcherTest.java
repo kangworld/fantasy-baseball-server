@@ -1,4 +1,4 @@
-package com.kangworld.fantasybaseball.external.kbo.fetcher;
+package com.kangworld.fantasybaseball.external.kbo.fetcher.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;

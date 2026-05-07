@@ -1,4 +1,4 @@
-package com.kangworld.fantasybaseball.external.kbo.fetcher;
+package com.kangworld.fantasybaseball.external.kbo.fetcher.api;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.kangworld.fantasybaseball.external.kbo.fetcher.KboScheduleFetcher;
 import com.kangworld.fantasybaseball.external.kbo.model.KboGameStatusMapper;
 import com.kangworld.fantasybaseball.external.kbo.model.KboScheduleGame;
 
