@@ -16,5 +16,6 @@ public class KboApiProperties {
     private Duration scheduleCacheTtl;
     private Duration recordCacheTtl;
     private Duration liveGameStateCacheTtl;
+    private Duration teamRankCacheTtl;
 
 }

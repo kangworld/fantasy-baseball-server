@@ -29,9 +29,11 @@ import com.kangworld.fantasybaseball.external.kbo.model.KboGameStatus;
 import com.kangworld.fantasybaseball.external.kbo.model.KboLiveGameState;
 import com.kangworld.fantasybaseball.external.kbo.model.KboPitcherRecord;
 import com.kangworld.fantasybaseball.external.kbo.model.KboScheduleGame;
+import com.kangworld.fantasybaseball.external.kbo.model.KboTeamRank;
 import com.kangworld.fantasybaseball.external.kbo.service.KboGameRecordFetchService;
 import com.kangworld.fantasybaseball.external.kbo.service.KboLiveGameStateFetchService;
 import com.kangworld.fantasybaseball.external.kbo.service.KboScheduleFetchService;
+import com.kangworld.fantasybaseball.external.kbo.service.KboTeamRankFetchService;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -55,6 +57,9 @@ class GameControllerTest {
 
     @MockitoBean
     private KboLiveGameStateFetchService liveGameStateFetchService;
+
+    @MockitoBean
+    private KboTeamRankFetchService teamRankFetchService;
 
     @MockitoBean
     private Clock clock;
@@ -103,7 +108,7 @@ class GameControllerTest {
 
     @Test
     void liveStates는_오늘_전체_경기의_실시간_상태를_반환한다() throws Exception {
-        // given
+        // givenb
         String accessToken = jwtAccessTokenFactory.create(1L, "USER");
         doReturn(List.of(
                 buildScheduleGame("game-1", KboGameStatus.READY),
@@ -147,6 +152,50 @@ class GameControllerTest {
                 .andExpect(jsonPath("$.data.statusInfo").value("6회초"))
                 .andExpect(jsonPath("$.data.inning").value(6))
                 .andExpect(jsonPath("$.data.topInning").value(true));
+    }
+
+    @Test
+    void teamRanks는_시즌으로_KBO_팀_순위표를_조회한다() throws Exception {
+        // given
+        String accessToken = jwtAccessTokenFactory.create(1L, "USER");
+        doReturn(List.of(buildTeamRank())).when(teamRankFetchService).fetch(2026);
+
+        // when then
+        mockMvc.perform(get("/api/games/team-ranks")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .param("season", "2026"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data[0].ranking").value(1))
+                .andExpect(jsonPath("$.data[0].teamCode").value("KT"))
+                .andExpect(jsonPath("$.data[0].teamName").value("KT"))
+                .andExpect(jsonPath("$.data[0].winningRate").value(0.68))
+                .andExpect(jsonPath("$.data[0].gameBehind").value(0.0))
+                .andExpect(jsonPath("$.data[0].continuousGameResult").value("1승"))
+                .andExpect(jsonPath("$.data[0].nextScheduleGameId").value("20260428LGKT02026"))
+                .andExpect(jsonPath("$.data[0].opposingTeamName").value("LG"));
+    }
+
+    @Test
+    void teamRanks는_시즌이_없으면_판타지_기준일의_연도로_조회한다() throws Exception {
+        // given
+        String accessToken = jwtAccessTokenFactory.create(1L, "USER");
+        doReturn(List.of(buildTeamRank())).when(teamRankFetchService).fetch(2026);
+
+        // when then
+        mockMvc.perform(get("/api/games/team-ranks")
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].teamCode").value("KT"));
+    }
+
+    @Test
+    void teamRanks는_accessToken이_없으면_401을_반환한다() throws Exception {
+        // given
+
+        // when then
+        mockMvc.perform(get("/api/games/team-ranks"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -220,6 +269,25 @@ class GameControllerTest {
                         .hr(0)
                         .bf(24)
                         .build()))
+                .build();
+    }
+
+    private KboTeamRank buildTeamRank() {
+        return KboTeamRank.builder()
+                .ranking(1)
+                .teamCode("KT")
+                .teamName("KT")
+                .teamShortName("KT")
+                .gameCount(25)
+                .winGameCount(17)
+                .drawnGameCount(0)
+                .loseGameCount(8)
+                .winningRate(0.68)
+                .gameBehind(0.0)
+                .continuousGameResult("1승")
+                .lastFiveGames("WWLLW")
+                .nextScheduleGameId("20260428LGKT02026")
+                .opposingTeamName("LG")
                 .build();
     }
 

@@ -14,6 +14,7 @@ import com.kangworld.fantasybaseball.common.api.ApiResponse;
 import com.kangworld.fantasybaseball.game.service.GameService;
 import com.kangworld.fantasybaseball.game.service.dto.GameLiveStateResponse;
 import com.kangworld.fantasybaseball.game.service.dto.GameScheduleResponse;
+import com.kangworld.fantasybaseball.game.service.dto.KboTeamRankResponse;
 import com.kangworld.fantasybaseball.game.service.dto.PlayerRecordResponse;
 
 import lombok.RequiredArgsConstructor;
@@ -40,6 +41,11 @@ public class GameController {
     @GetMapping("/games/{gameId}/live-state")
     public ApiResponse<GameLiveStateResponse> findLiveState(@PathVariable String gameId) {
         return ApiResponse.ok(gameService.findLiveState(gameId));
+    }
+
+    @GetMapping("/games/team-ranks")
+    public ApiResponse<List<KboTeamRankResponse>> findTeamRanks(@RequestParam(required = false) Integer season) {
+        return ApiResponse.ok(gameService.findTeamRanks(season));
     }
 
     @GetMapping("/player-records")

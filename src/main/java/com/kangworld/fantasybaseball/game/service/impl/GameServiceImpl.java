@@ -15,9 +15,11 @@ import com.kangworld.fantasybaseball.external.kbo.model.KboScheduleGame;
 import com.kangworld.fantasybaseball.external.kbo.service.KboGameRecordFetchService;
 import com.kangworld.fantasybaseball.external.kbo.service.KboLiveGameStateFetchService;
 import com.kangworld.fantasybaseball.external.kbo.service.KboScheduleFetchService;
+import com.kangworld.fantasybaseball.external.kbo.service.KboTeamRankFetchService;
 import com.kangworld.fantasybaseball.game.service.GameService;
 import com.kangworld.fantasybaseball.game.service.dto.GameLiveStateResponse;
 import com.kangworld.fantasybaseball.game.service.dto.GameScheduleResponse;
+import com.kangworld.fantasybaseball.game.service.dto.KboTeamRankResponse;
 import com.kangworld.fantasybaseball.game.service.dto.PlayerRecordResponse;
 
 import lombok.RequiredArgsConstructor;
@@ -29,6 +31,7 @@ public class GameServiceImpl implements GameService {
     private final KboScheduleFetchService scheduleFetchService;
     private final KboGameRecordFetchService gameRecordFetchService;
     private final KboLiveGameStateFetchService liveGameStateFetchService;
+    private final KboTeamRankFetchService teamRankFetchService;
     private final FantasyTime fantasyTime;
 
     @Override
@@ -52,6 +55,15 @@ public class GameServiceImpl implements GameService {
     @Override
     public GameLiveStateResponse findLiveState(String gameId) {
         return GameLiveStateResponse.from(liveGameStateFetchService.fetch(gameId));
+    }
+
+    @Override
+    public List<KboTeamRankResponse> findTeamRanks(Integer season) {
+        int targetSeason = season == null ? fantasyTime.now().getYear() : season;
+
+        return teamRankFetchService.fetch(targetSeason).stream()
+                .map(KboTeamRankResponse::from)
+                .toList();
     }
 
     @Override

@@ -6,6 +6,7 @@ import java.util.Set;
 
 import com.kangworld.fantasybaseball.game.service.dto.GameLiveStateResponse;
 import com.kangworld.fantasybaseball.game.service.dto.GameScheduleResponse;
+import com.kangworld.fantasybaseball.game.service.dto.KboTeamRankResponse;
 import com.kangworld.fantasybaseball.game.service.dto.PlayerRecordResponse;
 
 public interface GameService {
@@ -15,6 +16,8 @@ public interface GameService {
     List<GameLiveStateResponse> findLiveStates();
 
     GameLiveStateResponse findLiveState(String gameId);
+
+    List<KboTeamRankResponse> findTeamRanks(Integer season);
 
     List<PlayerRecordResponse> findTodayPlayerRecords();
 
