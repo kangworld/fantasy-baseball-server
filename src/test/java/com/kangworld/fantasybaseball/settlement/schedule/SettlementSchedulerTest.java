@@ -1,8 +1,12 @@
 package com.kangworld.fantasybaseball.settlement.schedule;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 import java.time.LocalDate;
 
@@ -15,8 +19,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.scheduling.annotation.Scheduled;
 
 import com.kangworld.fantasybaseball.common.time.FantasyTime;
+import com.kangworld.fantasybaseball.settlement.model.SettlementStepName;
 import com.kangworld.fantasybaseball.settlement.service.PlayerPointSettlementService;
 import com.kangworld.fantasybaseball.settlement.service.RankSettlementService;
+import com.kangworld.fantasybaseball.settlement.service.SettlementExecutionRecorder;
 import com.kangworld.rediscore.lock.annotation.RedisLock;
 
 @ExtendWith(MockitoExtension.class)
@@ -29,6 +35,9 @@ class SettlementSchedulerTest {
     private RankSettlementService rankSettlementService;
 
     @Mock
+    private SettlementExecutionRecorder settlementExecutionRecorder;
+
+    @Mock
     private FantasyTime fantasyTime;
 
     @InjectMocks
@@ -39,14 +48,37 @@ class SettlementSchedulerTest {
         // given
         LocalDate fantasyDate = LocalDate.of(2026, 5, 11);
         given(fantasyTime.now()).willReturn(fantasyDate);
+        given(settlementExecutionRecorder.canStart(fantasyDate)).willReturn(true);
+        given(settlementExecutionRecorder.start(fantasyDate)).willReturn(1L);
 
         // when
         settlementScheduler.doDailySettlement();
 
         // then
-        InOrder inOrder = inOrder(playerPointSettlementService, rankSettlementService);
-        inOrder.verify(playerPointSettlementService).settle(fantasyDate);
-        inOrder.verify(rankSettlementService).settle(fantasyDate);
+        InOrder inOrder = inOrder(settlementExecutionRecorder);
+        inOrder.verify(settlementExecutionRecorder).canStart(fantasyDate);
+        inOrder.verify(settlementExecutionRecorder).start(fantasyDate);
+        inOrder.verify(settlementExecutionRecorder)
+                .runStep(eq(1L), eq(SettlementStepName.PLAYER_POINT), any(Runnable.class));
+        inOrder.verify(settlementExecutionRecorder)
+                .runStep(eq(1L), eq(SettlementStepName.DAILY_RANK), any(Runnable.class));
+        inOrder.verify(settlementExecutionRecorder)
+                .runStep(eq(1L), eq(SettlementStepName.SEASON_RANK), any(Runnable.class));
+        inOrder.verify(settlementExecutionRecorder).done(1L);
+    }
+
+    @Test
+    void doDailySettlement는_전날_정산이_DONE이_아니면_시작하지_않는다() {
+        // given
+        LocalDate fantasyDate = LocalDate.of(2026, 5, 11);
+        given(fantasyTime.now()).willReturn(fantasyDate);
+        given(settlementExecutionRecorder.canStart(fantasyDate)).willReturn(false);
+
+        // when
+        settlementScheduler.doDailySettlement();
+
+        // then
+        verify(settlementExecutionRecorder, never()).start(fantasyDate);
     }
 
     @Test

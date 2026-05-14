@@ -22,6 +22,7 @@ import com.kangworld.fantasybaseball.rank.service.dto.ScoreboardResponse;
 import com.kangworld.fantasybaseball.rank.service.dto.ScoreboardSeasonResponse;
 import com.kangworld.fantasybaseball.rank.service.dto.SeasonRankItemResponse;
 import com.kangworld.fantasybaseball.rank.service.dto.SeasonRankPageResponse;
+import com.kangworld.fantasybaseball.settlement.service.SettlementExecutionRecorder;
 
 @Service
 public class RankServiceImpl implements RankService {
@@ -31,13 +32,19 @@ public class RankServiceImpl implements RankService {
 
     private final DailyRankDao dailyRankDao;
     private final SeasonRankDao seasonRankDao;
+    private final SettlementExecutionRecorder settlementExecutionRecorder;
     private final FantasyTime fantasyTime;
     private final LoadingCache<RankPageKey, List<DailyRankView>> dailyRankPageCache;
     private final LoadingCache<RankPageKey, List<SeasonRankView>> seasonRankPageCache;
 
-    public RankServiceImpl(DailyRankDao dailyRankDao, SeasonRankDao seasonRankDao, FantasyTime fantasyTime) {
+    public RankServiceImpl(
+            DailyRankDao dailyRankDao,
+            SeasonRankDao seasonRankDao,
+            SettlementExecutionRecorder settlementExecutionRecorder,
+            FantasyTime fantasyTime) {
         this.dailyRankDao = dailyRankDao;
         this.seasonRankDao = seasonRankDao;
+        this.settlementExecutionRecorder = settlementExecutionRecorder;
         this.fantasyTime = fantasyTime;
         this.dailyRankPageCache = Caffeine.newBuilder()
                 // 전체 랭킹은 여러 사용자가 같은 페이지를 반복 조회하므로 짧은 로컬 캐시만 둔다.
@@ -54,6 +61,9 @@ public class RankServiceImpl implements RankService {
     public ScoreboardResponse findMyScoreboard(long memberId, LocalDate date) {
         LocalDate targetDate = resolveDate(date);
         int dateId = DateIds.from(targetDate);
+
+        if (!settlementExecutionRecorder.isDone(targetDate))
+            return emptyScoreboard(targetDate);
 
         // 개인화 점수판은 회원 수만큼 캐시가 커지므로 초기 구현에서는 매번 필요한 row만 조회한다.
         ScoreboardDailyResponse daily = dailyRankDao.findViewByMemberIdAndDateId(memberId, dateId)
@@ -73,6 +83,9 @@ public class RankServiceImpl implements RankService {
     @Override
     public DailyRankPageResponse findDailyRanks(LocalDate date, int page, int size) {
         LocalDate targetDate = resolveDate(date);
+        if (!settlementExecutionRecorder.isDone(targetDate))
+            return emptyDailyRanks(targetDate, page, size);
+
         RankPageKey key = RankPageKey.of(DateIds.from(targetDate), page, size);
         List<DailyRankItemResponse> ranks = dailyRankPageCache.get(key).stream()
                 .map(DailyRankItemResponse::from)
@@ -89,6 +102,9 @@ public class RankServiceImpl implements RankService {
     @Override
     public SeasonRankPageResponse findSeasonRanks(LocalDate date, int page, int size) {
         LocalDate targetDate = resolveDate(date);
+        if (!settlementExecutionRecorder.isDone(targetDate))
+            return emptySeasonRanks(targetDate, page, size);
+
         RankPageKey key = RankPageKey.of(DateIds.from(targetDate), page, size);
         List<SeasonRankItemResponse> ranks = seasonRankPageCache.get(key).stream()
                 .map(SeasonRankItemResponse::from)
@@ -107,6 +123,32 @@ public class RankServiceImpl implements RankService {
             return date;
 
         return fantasyTime.now();
+    }
+
+    private ScoreboardResponse emptyScoreboard(LocalDate targetDate) {
+        return ScoreboardResponse.builder()
+                .date(targetDate)
+                .daily(ScoreboardDailyResponse.empty())
+                .season(ScoreboardSeasonResponse.empty())
+                .build();
+    }
+
+    private DailyRankPageResponse emptyDailyRanks(LocalDate targetDate, int page, int size) {
+        return DailyRankPageResponse.builder()
+                .date(targetDate)
+                .page(page)
+                .size(size)
+                .ranks(List.of())
+                .build();
+    }
+
+    private SeasonRankPageResponse emptySeasonRanks(LocalDate targetDate, int page, int size) {
+        return SeasonRankPageResponse.builder()
+                .date(targetDate)
+                .page(page)
+                .size(size)
+                .ranks(List.of())
+                .build();
     }
 
     private List<DailyRankView> findDailyRankViews(RankPageKey key) {

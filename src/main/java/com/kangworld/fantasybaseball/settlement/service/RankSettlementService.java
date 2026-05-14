@@ -36,12 +36,30 @@ public class RankSettlementService {
 
     @Transactional
     public void settle(LocalDate targetDate) {
-        int dateId = DateIds.from(targetDate);
+        List<DailyRank> dailyRanks = settleDaily(targetDate);
+        settleSeason(targetDate, dailyRanks);
+    }
+
+    @Transactional
+    public List<DailyRank> settleDaily(LocalDate targetDate) {
         LocalDateTime now = fantasyTime.getDateTime();
 
         List<DailyRank> dailyRanks = createDailyRanks(targetDate, now);
         dailyRankDao.insertAll(dailyRanks);
 
+        return dailyRanks;
+    }
+
+    @Transactional
+    public void settleSeason(LocalDate targetDate) {
+        int dateId = DateIds.from(targetDate);
+        List<DailyRank> dailyRanks = dailyRankDao.findByDateId(dateId);
+
+        settleSeason(targetDate, dailyRanks);
+    }
+
+    private void settleSeason(LocalDate targetDate, List<DailyRank> dailyRanks) {
+        LocalDateTime now = fantasyTime.getDateTime();
         List<SeasonRank> seasonRanks = createSeasonRanks(targetDate, dailyRanks, now);
         seasonRankDao.insertAll(seasonRanks);
     }

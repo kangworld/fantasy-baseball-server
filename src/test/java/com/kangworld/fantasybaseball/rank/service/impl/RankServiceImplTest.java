@@ -24,6 +24,7 @@ import com.kangworld.fantasybaseball.rank.dao.view.SeasonRankView;
 import com.kangworld.fantasybaseball.rank.service.dto.DailyRankPageResponse;
 import com.kangworld.fantasybaseball.rank.service.dto.ScoreboardResponse;
 import com.kangworld.fantasybaseball.rank.service.dto.SeasonRankPageResponse;
+import com.kangworld.fantasybaseball.settlement.service.SettlementExecutionRecorder;
 
 @ExtendWith(MockitoExtension.class)
 class RankServiceImplTest {
@@ -35,19 +36,23 @@ class RankServiceImplTest {
     private SeasonRankDao seasonRankDao;
 
     @Mock
+    private SettlementExecutionRecorder settlementExecutionRecorder;
+
+    @Mock
     private FantasyTime fantasyTime;
 
     private RankServiceImpl rankService;
 
     @BeforeEach
     void setUp() {
-        rankService = new RankServiceImpl(dailyRankDao, seasonRankDao, fantasyTime);
+        rankService = new RankServiceImpl(dailyRankDao, seasonRankDao, settlementExecutionRecorder, fantasyTime);
     }
 
     @Test
     void findMyScoreboard는_date가_없으면_FantasyTime_now를_사용한다() {
         // given
         given(fantasyTime.now()).willReturn(LocalDate.of(2026, 5, 11));
+        given(settlementExecutionRecorder.isDone(LocalDate.of(2026, 5, 11))).willReturn(true);
         given(dailyRankDao.findViewByMemberIdAndDateId(1L, 20260511))
                 .willReturn(Optional.of(dailyRank(3, 2, 1L, "강민구", 120)));
         given(seasonRankDao.findViewByMemberIdAndDateId(1L, 20260511))
@@ -69,6 +74,7 @@ class RankServiceImplTest {
     void findMyScoreboard는_랭킹이_없으면_0점_객체를_반환하고_캐시하지_않는다() {
         // given
         LocalDate date = LocalDate.of(2026, 5, 11);
+        given(settlementExecutionRecorder.isDone(date)).willReturn(true);
         given(dailyRankDao.findViewByMemberIdAndDateId(1L, 20260511)).willReturn(Optional.empty());
         given(seasonRankDao.findViewByMemberIdAndDateId(1L, 20260511)).willReturn(Optional.empty());
 
@@ -90,6 +96,7 @@ class RankServiceImplTest {
     void findDailyRanks는_페이지를_캐시한다() {
         // given
         LocalDate date = LocalDate.of(2026, 5, 11);
+        given(settlementExecutionRecorder.isDone(date)).willReturn(true);
         given(dailyRankDao.findViewsByDateId(20260511, 50, 0))
                 .willReturn(List.of(dailyRank(1, 1, 1L, "강민구", 100)));
 
@@ -107,6 +114,7 @@ class RankServiceImplTest {
     void findSeasonRanks는_page와_size로_limit_offset을_계산한다() {
         // given
         LocalDate date = LocalDate.of(2026, 5, 11);
+        given(settlementExecutionRecorder.isDone(date)).willReturn(true);
         given(seasonRankDao.findViewsByDateId(20260511, 20, 20))
                 .willReturn(List.of(seasonRank(21, 21, 10, 1L, "강민구", 1000, 20)));
 
@@ -120,6 +128,36 @@ class RankServiceImplTest {
         assertThat(response.getRanks().get(0).getRankNo()).isEqualTo(21);
         verify(seasonRankDao).findViewsByDateId(20260511, 20, 20);
         verify(fantasyTime, never()).now();
+    }
+
+    @Test
+    void findDailyRanks는_정산이_DONE이_아니면_빈_배열을_반환하고_캐시하지_않는다() {
+        // given
+        LocalDate date = LocalDate.of(2026, 5, 11);
+        given(settlementExecutionRecorder.isDone(date)).willReturn(false);
+
+        // when
+        DailyRankPageResponse response = rankService.findDailyRanks(date, 0, 50);
+
+        // then
+        assertThat(response.getRanks()).isEmpty();
+        verify(dailyRankDao, never()).findViewsByDateId(20260511, 50, 0);
+    }
+
+    @Test
+    void findMyScoreboard는_정산이_DONE이_아니면_0점_객체를_반환한다() {
+        // given
+        LocalDate date = LocalDate.of(2026, 5, 11);
+        given(settlementExecutionRecorder.isDone(date)).willReturn(false);
+
+        // when
+        ScoreboardResponse response = rankService.findMyScoreboard(1L, date);
+
+        // then
+        assertThat(response.getDaily().getPoint()).isZero();
+        assertThat(response.getSeason().getPoint()).isZero();
+        verify(dailyRankDao, never()).findViewByMemberIdAndDateId(1L, 20260511);
+        verify(seasonRankDao, never()).findViewByMemberIdAndDateId(1L, 20260511);
     }
 
     private DailyRankView dailyRank(int rankNo, int displayRankNo, long memberId, String displayName, int point) {

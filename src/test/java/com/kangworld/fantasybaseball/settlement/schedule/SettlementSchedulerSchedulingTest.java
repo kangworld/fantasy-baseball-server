@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import java.time.LocalDate;
@@ -18,8 +19,10 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import com.kangworld.fantasybaseball.common.time.FantasyTime;
+import com.kangworld.fantasybaseball.settlement.model.SettlementStepName;
 import com.kangworld.fantasybaseball.settlement.service.PlayerPointSettlementService;
 import com.kangworld.fantasybaseball.settlement.service.RankSettlementService;
+import com.kangworld.fantasybaseball.settlement.service.SettlementExecutionRecorder;
 import com.kangworld.rediscore.lock.RedisLock;
 import com.kangworld.rediscore.lock.RedisLockManager;
 
@@ -38,6 +41,9 @@ class SettlementSchedulerSchedulingTest {
     private RankSettlementService rankSettlementService;
 
     @MockitoBean
+    private SettlementExecutionRecorder settlementExecutionRecorder;
+
+    @MockitoBean
     private FantasyTime fantasyTime;
 
     @MockitoBean
@@ -48,6 +54,8 @@ class SettlementSchedulerSchedulingTest {
         // given
         LocalDate targetDate = LocalDate.of(2026, 5, 11);
         given(fantasyTime.now()).willReturn(targetDate);
+        given(settlementExecutionRecorder.canStart(targetDate)).willReturn(true);
+        given(settlementExecutionRecorder.start(targetDate)).willReturn(1L);
         given(redisLockManager.acquire(eq("settlement"), anyLong(), eq("daily")))
                 .willReturn(new RedisLock("fantasy-baseball::settlement-daily", "token"));
 
@@ -55,9 +63,33 @@ class SettlementSchedulerSchedulingTest {
         await()
                 .atMost(3, TimeUnit.SECONDS)
                 .untilAsserted(() -> {
-                    verify(playerPointSettlementService, atLeastOnce()).settle(targetDate);
-                    verify(rankSettlementService, atLeastOnce()).settle(targetDate);
+                    verify(settlementExecutionRecorder, atLeastOnce())
+                            .runStep(eq(1L), eq(SettlementStepName.PLAYER_POINT), any(Runnable.class));
+                    verify(settlementExecutionRecorder, atLeastOnce())
+                            .runStep(eq(1L), eq(SettlementStepName.DAILY_RANK), any(Runnable.class));
+                    verify(settlementExecutionRecorder, atLeastOnce())
+                            .runStep(eq(1L), eq(SettlementStepName.SEASON_RANK), any(Runnable.class));
+                    verify(settlementExecutionRecorder, atLeastOnce()).done(1L);
                 });
+    }
+
+    @Test
+    void 전날_정산이_DONE이_아니면_당일_정산을_시작하지_않는다() {
+        // given
+        LocalDate targetDate = LocalDate.of(2026, 5, 11);
+        given(fantasyTime.now()).willReturn(targetDate);
+        given(settlementExecutionRecorder.canStart(targetDate)).willReturn(false);
+
+        // when
+        new SettlementScheduler(
+                playerPointSettlementService,
+                rankSettlementService,
+                settlementExecutionRecorder,
+                fantasyTime
+        ).doDailySettlement();
+
+        // then
+        verify(settlementExecutionRecorder, never()).start(targetDate);
     }
 
 }
