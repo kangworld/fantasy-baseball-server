@@ -16,7 +16,7 @@ import com.kangworld.fantasybaseball.external.kbo.model.KboLiveGameState;
 class KboLiveGameStateApiFetcherTest {
 
     @Test
-    void fetch는_polling_상태값을_보존하고_BEFORE를_READY로_매핑한다() {
+    void fetch는_polling_READY_상태값을_보존하고_READY로_매핑한다() {
         // given
         RestClient.Builder builder = RestClient.builder()
                 .baseUrl("https://example.test");
@@ -29,9 +29,9 @@ class KboLiveGameStateApiFetcherTest {
                           "result": {
                             "game": {
                               "gameId": "20260512HHWO02026",
-                              "statusCode": "BEFORE",
+                              "statusCode": "READY",
                               "statusInfo": "경기전",
-                              "currentInning": null,
+                              "currentInning": "1회초",
                               "homeTeamScore": 0,
                               "awayTeamScore": 0,
                               "homeTeamCode": "WO",
@@ -48,8 +48,9 @@ class KboLiveGameStateApiFetcherTest {
 
         // then
         assertThat(state.getStatus()).isEqualTo(KboGameStatus.READY);
-        assertThat(state.getStatusCode()).isEqualTo("BEFORE");
+        assertThat(state.getStatusCode()).isEqualTo("READY");
         assertThat(state.getStatusInfo()).isEqualTo("경기전");
+        assertThat(state.getCurrentInning()).isEqualTo("1회초");
         server.verify();
     }
 

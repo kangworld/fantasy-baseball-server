@@ -27,7 +27,7 @@ public class GameLiveStateResponse {
     private String awayTeamCode;
 
     public static GameLiveStateResponse from(KboLiveGameState state) {
-        Matcher inningMatcher = INNING_PATTERN.matcher(String.valueOf(state.getCurrentInning()).trim());
+        Matcher inningMatcher = INNING_PATTERN.matcher(getInningText(state));
         Integer inning = null;
         Boolean topInning = null;
 
@@ -48,6 +48,16 @@ public class GameLiveStateResponse {
                 .homeTeamCode(state.getHomeTeamCode())
                 .awayTeamCode(state.getAwayTeamCode())
                 .build();
+    }
+
+    private static String getInningText(KboLiveGameState state) {
+        if (state.getStatus() != KboGameStatus.PLAYING)
+            return "";
+
+        if (state.getCurrentInning() != null)
+            return state.getCurrentInning().trim();
+
+        return String.valueOf(state.getStatusInfo()).trim();
     }
 
 }

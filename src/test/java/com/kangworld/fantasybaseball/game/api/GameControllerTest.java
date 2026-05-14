@@ -100,8 +100,8 @@ class GameControllerTest {
                 .andExpect(jsonPath("$.data[0].status").value("READY"))
                 .andExpect(jsonPath("$.data[1].gameId").value("game-2"))
                 .andExpect(jsonPath("$.data[1].status").value("PLAYING"))
-                .andExpect(jsonPath("$.data[1].statusCode").value("PLAYING"))
-                .andExpect(jsonPath("$.data[1].statusInfo").value("경기중"))
+                .andExpect(jsonPath("$.data[1].statusCode").value("STARTED"))
+                .andExpect(jsonPath("$.data[1].statusInfo").value("3회말"))
                 .andExpect(jsonPath("$.data[0].homeTeamCode").value("KT"))
                 .andExpect(jsonPath("$.data[0].awayTeamCode").value("LG"));
     }
@@ -114,7 +114,7 @@ class GameControllerTest {
                 buildScheduleGame("game-1", KboGameStatus.READY),
                 buildScheduleGame("game-2", KboGameStatus.PLAYING)
         )).when(scheduleFetchService).fetch(TODAY);
-        doReturn(buildLiveState("game-1", "경기전", null)).when(liveGameStateFetchService).fetch("game-1");
+        doReturn(buildReadyLiveState("game-1")).when(liveGameStateFetchService).fetch("game-1");
         doReturn(buildLiveState("game-2")).when(liveGameStateFetchService).fetch("game-2");
 
         // when then
@@ -125,12 +125,14 @@ class GameControllerTest {
                 .andExpect(jsonPath("$.data.length()").value(2))
                 .andExpect(jsonPath("$.data[0].gameId").value("game-1"))
                 .andExpect(jsonPath("$.data[0].statusInfo").value("경기전"))
-                .andExpect(jsonPath("$.data[0].statusCode").value("BEFORE"))
+                .andExpect(jsonPath("$.data[0].statusCode").value("READY"))
+                .andExpect(jsonPath("$.data[0].inning").doesNotExist())
+                .andExpect(jsonPath("$.data[0].topInning").doesNotExist())
                 .andExpect(jsonPath("$.data[1].gameId").value("game-2"))
                 .andExpect(jsonPath("$.data[1].status").value("PLAYING"))
-                .andExpect(jsonPath("$.data[1].statusCode").value("PLAYING"))
-                .andExpect(jsonPath("$.data[1].inning").value(6))
-                .andExpect(jsonPath("$.data[1].topInning").value(true))
+                .andExpect(jsonPath("$.data[1].statusCode").value("STARTED"))
+                .andExpect(jsonPath("$.data[1].inning").value(3))
+                .andExpect(jsonPath("$.data[1].topInning").value(false))
                 .andExpect(jsonPath("$.data[1].homeTeamScore").value(3))
                 .andExpect(jsonPath("$.data[1].awayTeamScore").value(4));
     }
@@ -148,10 +150,10 @@ class GameControllerTest {
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.gameId").value("game-2"))
                 .andExpect(jsonPath("$.data.status").value("PLAYING"))
-                .andExpect(jsonPath("$.data.statusCode").value("PLAYING"))
-                .andExpect(jsonPath("$.data.statusInfo").value("6회초"))
-                .andExpect(jsonPath("$.data.inning").value(6))
-                .andExpect(jsonPath("$.data.topInning").value(true));
+                .andExpect(jsonPath("$.data.statusCode").value("STARTED"))
+                .andExpect(jsonPath("$.data.statusInfo").value("3회말"))
+                .andExpect(jsonPath("$.data.inning").value(3))
+                .andExpect(jsonPath("$.data.topInning").value(false));
     }
 
     @Test
@@ -231,8 +233,8 @@ class GameControllerTest {
                 .gameId(gameId)
                 .startAt(LocalDateTime.of(2026, 4, 28, 18, 30))
                 .status(status)
-                .statusCode(status == KboGameStatus.PLAYING ? "PLAYING" : "BEFORE")
-                .statusInfo(status == KboGameStatus.PLAYING ? "경기중" : "경기전")
+                .statusCode(status == KboGameStatus.PLAYING ? "STARTED" : "READY")
+                .statusInfo(status == KboGameStatus.PLAYING ? "3회말" : "경기전")
                 .homeTeamCode("KT")
                 .homeTeamName("KT")
                 .awayTeamCode("LG")
@@ -292,14 +294,23 @@ class GameControllerTest {
     }
 
     private KboLiveGameState buildLiveState(String gameId) {
-        return buildLiveState(gameId, "6회초", "6초");
+        return buildLiveState(gameId, KboGameStatus.PLAYING, "STARTED", "3회말", "3회말");
     }
 
-    private KboLiveGameState buildLiveState(String gameId, String statusInfo, String currentInning) {
+    private KboLiveGameState buildReadyLiveState(String gameId) {
+        return buildLiveState(gameId, KboGameStatus.READY, "READY", "경기전", "1회초");
+    }
+
+    private KboLiveGameState buildLiveState(
+            String gameId,
+            KboGameStatus status,
+            String statusCode,
+            String statusInfo,
+            String currentInning) {
         return KboLiveGameState.builder()
                 .gameId(gameId)
-                .status(KboGameStatus.PLAYING)
-                .statusCode(currentInning == null ? "BEFORE" : "PLAYING")
+                .status(status)
+                .statusCode(statusCode)
                 .statusInfo(statusInfo)
                 .currentInning(currentInning)
                 .homeTeamScore(3)

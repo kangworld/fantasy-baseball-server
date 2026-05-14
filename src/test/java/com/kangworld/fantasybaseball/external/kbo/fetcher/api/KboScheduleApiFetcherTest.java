@@ -41,7 +41,7 @@ class KboScheduleApiFetcherTest {
                         "homeTeamName": "키움",
                         "awayTeamCode": "HH",
                         "awayTeamName": "한화",
-                        "statusCode": "BEFORE",
+                        "statusCode": "READY",
                         "statusInfo": "경기전",
                         "cancel": false,
                         "suspended": false
@@ -57,7 +57,7 @@ class KboScheduleApiFetcherTest {
         // then
         assertThat(games).hasSize(1);
         assertThat(games.get(0).getStatus()).isEqualTo(KboGameStatus.READY);
-        assertThat(games.get(0).getStatusCode()).isEqualTo("BEFORE");
+        assertThat(games.get(0).getStatusCode()).isEqualTo("READY");
         assertThat(games.get(0).getStatusInfo()).isEqualTo("경기전");
         server.verify();
     }
