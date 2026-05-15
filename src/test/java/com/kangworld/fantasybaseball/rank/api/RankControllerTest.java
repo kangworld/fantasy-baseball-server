@@ -47,7 +47,11 @@ class RankControllerTest {
 
         // when then
         mockMvc.perform(get("/api/scoreboard/me"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(401))
+                .andExpect(jsonPath("$.status").value("UNAUTHORIZED"))
+                .andExpect(jsonPath("$.message").value("로그인이 필요합니다."))
+                .andExpect(jsonPath("$.data").doesNotExist());
     }
 
     @Test
@@ -114,7 +118,10 @@ class RankControllerTest {
         // when then
         mockMvc.perform(get("/api/ranks/daily")
                         .param("size", "101"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.status").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.data").doesNotExist());
     }
 
     @Test
@@ -124,7 +131,10 @@ class RankControllerTest {
         // when then
         mockMvc.perform(get("/api/ranks/daily")
                         .param("page", "-1"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.status").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.data").doesNotExist());
     }
 
     @Test
@@ -134,7 +144,10 @@ class RankControllerTest {
         // when then
         mockMvc.perform(get("/api/ranks/season")
                         .param("size", "0"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.status").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.data").doesNotExist());
     }
 
     private ScoreboardResponse scoreboard(LocalDate date) {

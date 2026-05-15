@@ -74,7 +74,11 @@ class MemberControllerTest {
         mockMvc.perform(post("/api/members/signup")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(secondRequestBody))
-                .andExpect(status().isConflict());
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value(409))
+                .andExpect(jsonPath("$.status").value("CONFLICT"))
+                .andExpect(jsonPath("$.message").value("이미 가입된 이메일입니다."))
+                .andExpect(jsonPath("$.data").doesNotExist());
     }
 
     @Test
@@ -92,7 +96,10 @@ class MemberControllerTest {
         mockMvc.perform(post("/api/members/signup")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.status").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.data").doesNotExist());
     }
 
 }

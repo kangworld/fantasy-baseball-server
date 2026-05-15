@@ -8,21 +8,19 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import com.kangworld.fantasybaseball.auth.security.JwtAuthenticationFilter;
+import com.kangworld.fantasybaseball.common.api.ApiAuthenticationEntryPoint;
 
-import static org.springframework.http.HttpStatus.UNAUTHORIZED;
+import lombok.RequiredArgsConstructor;
 
 @Configuration
+@RequiredArgsConstructor
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
-        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-    }
+    private final ApiAuthenticationEntryPoint apiAuthenticationEntryPoint;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -41,8 +39,8 @@ public class SecurityConfig {
         // 인증이 필요한 API에 토큰 검증을 먼저 태우기 위해 JWT 필터를 추가.
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
-        // 인증이 비어 있거나 토큰이 유효하지 않으면 401을 반환.
-        http.exceptionHandling(exception -> exception.authenticationEntryPoint(new HttpStatusEntryPoint(UNAUTHORIZED)));
+        // 인증이 비어 있거나 토큰이 유효하지 않으면 API 공통 포맷으로 401을 반환.
+        http.exceptionHandling(exception -> exception.authenticationEntryPoint(apiAuthenticationEntryPoint));
 
         // 인증/헬스체크와 공개 랭킹만 열고, 개인화 API는 보호 API로 묶는다.
         http.authorizeHttpRequests(auth -> auth
