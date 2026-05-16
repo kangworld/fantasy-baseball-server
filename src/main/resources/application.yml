@@ -4,6 +4,17 @@ server:
 spring:
   application:
     name: fantasy-baseball-server
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:false}
+          starttls:
+            enable: ${MAIL_SMTP_STARTTLS_ENABLE:false}
 
 management:
   endpoints:
@@ -29,3 +40,11 @@ settlement:
   schedule:
     daily-cron: "${SETTLEMENT_DAILY_CRON:0 0 2 * * *}"
     zone: "${SETTLEMENT_SCHEDULE_ZONE:Asia/Seoul}"
+
+member:
+  mail:
+    from: ${MEMBER_MAIL_FROM:no-reply@fantasy-baseball.local}
+  signup:
+    email-verification:
+      code-expiration-minutes: ${SIGNUP_EMAIL_VERIFICATION_CODE_EXPIRATION_MINUTES:5}
+      verified-expiration-minutes: ${SIGNUP_EMAIL_VERIFICATION_VERIFIED_EXPIRATION_MINUTES:10}

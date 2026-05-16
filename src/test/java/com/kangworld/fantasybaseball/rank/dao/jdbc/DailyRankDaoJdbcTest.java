@@ -125,8 +125,8 @@ class DailyRankDaoJdbcTest {
 
     private void insertMember(long memberId, String displayName) {
         jdbcTemplate.update("""
-                insert into member (member_id, email, password_hash, display_name, role, status, email_verified, created_at, updated_at)
-                values (?, ?, 'password', ?, 'USER', 'ACTIVE', true, current_timestamp, current_timestamp)
+                insert into member (member_id, email, password_hash, display_name, role, status, created_at, updated_at)
+                values (?, ?, 'password', ?, 'USER', 'ACTIVE', current_timestamp, current_timestamp)
                 """, memberId, "member" + memberId + "@test.com", displayName);
     }
 

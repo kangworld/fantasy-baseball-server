@@ -5,7 +5,6 @@ create table if not exists member (
     display_name varchar(50) not null,
     role varchar(20) not null,
     status varchar(20) not null,
-    email_verified boolean not null default false,
     created_at timestamp not null,
     updated_at timestamp not null,
     constraint uk_member_email unique (email)

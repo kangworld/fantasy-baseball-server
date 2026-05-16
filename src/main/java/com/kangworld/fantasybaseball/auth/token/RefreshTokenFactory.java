@@ -24,6 +24,8 @@ public class RefreshTokenFactory {
     public RefreshTokenValue create(Long userId) {
         String tokenId = UUID.randomUUID().toString();
         String secret = UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString().replace("-", "");
+        // tokenId는 Redis 조회 키, secret은 실제 소유 증명값으로 분리한다.
+        // Redis에는 원본 토큰을 저장하지 않고 secret hash만 저장한다.
         String rawToken = tokenId + "." + secret;
 
         return RefreshTokenValue.builder()

@@ -166,7 +166,6 @@ class AuthServiceImplTest {
                 .displayName(displayName)
                 .role(MemberRole.USER)
                 .status(status)
-                .emailVerified(false)
                 .createdAt(now)
                 .updatedAt(now)
                 .build());

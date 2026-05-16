@@ -4,13 +4,16 @@ import java.time.LocalDateTime;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import com.kangworld.fantasybaseball.common.time.FantasyTime;
 import com.kangworld.fantasybaseball.member.dao.MemberDao;
 import com.kangworld.fantasybaseball.member.exception.MemberEmailAlreadyExistsException;
 import com.kangworld.fantasybaseball.member.model.Member;
 import com.kangworld.fantasybaseball.member.model.MemberRole;
 import com.kangworld.fantasybaseball.member.model.MemberStatus;
 import com.kangworld.fantasybaseball.member.service.MemberService;
+import com.kangworld.fantasybaseball.member.service.SignupEmailVerificationService;
 import com.kangworld.fantasybaseball.member.service.dto.MemberSignupRequest;
 import com.kangworld.fantasybaseball.member.service.dto.MemberSignupResponse;
 
@@ -22,15 +25,18 @@ public class MemberServiceImpl implements MemberService {
 
     private final MemberDao memberDao;
     private final PasswordEncoder passwordEncoder;
+    private final SignupEmailVerificationService signupEmailVerificationService;
+    private final FantasyTime fantasyTime;
 
     @Override
+    @Transactional
     public MemberSignupResponse signup(MemberSignupRequest request) {
         // 이메일 중복은 회원가입 전에 먼저 막는다.
-        if (memberDao.findByEmail(request.getEmail()).isPresent()) {
+        if (memberDao.findByEmail(request.getEmail()).isPresent())
             throw new MemberEmailAlreadyExistsException();
-        }
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = fantasyTime.getDateTime();
+        signupEmailVerificationService.consumeVerifiedEmail(request.getEmail(), request.getVerificationCode(), now);
 
         Member member = Member.builder()
                 .email(request.getEmail())
@@ -38,7 +44,6 @@ public class MemberServiceImpl implements MemberService {
                 .displayName(request.getDisplayName())
                 .role(MemberRole.USER)
                 .status(MemberStatus.OK)
-                .emailVerified(false)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();

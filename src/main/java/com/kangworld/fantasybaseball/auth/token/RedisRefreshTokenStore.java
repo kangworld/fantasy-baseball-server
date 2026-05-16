@@ -19,6 +19,8 @@ public class RedisRefreshTokenStore implements RefreshTokenStore {
     public void save(RefreshTokenValue refreshTokenValue) {
         String key = buildKey(refreshTokenValue.getUserId(), refreshTokenValue.getTokenId());
 
+        // key에는 tokenId만 포함하고, value에는 secret hash만 저장한다.
+        // 토큰 원문이 Redis에 남지 않도록 하기 위한 구조다.
         stringRedisTemplate.opsForValue().set(
                 key,
                 refreshTokenValue.getSecretHash(),

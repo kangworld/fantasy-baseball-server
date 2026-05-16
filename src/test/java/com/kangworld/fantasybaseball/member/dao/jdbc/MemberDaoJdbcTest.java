@@ -41,7 +41,6 @@ class MemberDaoJdbcTest {
         assertThat(savedMember.getDisplayName()).isEqualTo("slugger");
         assertThat(savedMember.getRole()).isEqualTo(MemberRole.USER);
         assertThat(savedMember.getStatus()).isEqualTo(MemberStatus.OK);
-        assertThat(savedMember.isEmailVerified()).isFalse();
     }
 
     @Test
@@ -95,7 +94,6 @@ class MemberDaoJdbcTest {
                 .displayName(displayName)
                 .role(MemberRole.USER)
                 .status(MemberStatus.OK)
-                .emailVerified(false)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();

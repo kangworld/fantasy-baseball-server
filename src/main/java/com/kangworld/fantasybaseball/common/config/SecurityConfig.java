@@ -49,6 +49,8 @@ public class SecurityConfig {
                         "/actuator/health",
                         "/actuator/info",
                         "/api/members/signup",
+                        "/api/members/signup/email-verification",
+                        "/api/members/signup/email-verification/confirm",
                         "/api/auth/login",
                         "/api/auth/refresh",
                         "/api/ranks/daily",

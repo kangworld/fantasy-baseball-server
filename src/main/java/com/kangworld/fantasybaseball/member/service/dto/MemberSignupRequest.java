@@ -18,6 +18,9 @@ public class MemberSignupRequest {
     private String email;
 
     @NotBlank
+    private String verificationCode;
+
+    @NotBlank
     private String password;
 
     @NotBlank

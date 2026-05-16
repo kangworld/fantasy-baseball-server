@@ -83,7 +83,6 @@ public class MemberDaoJdbc implements MemberDao {
                     :displayName,
                     :role,
                     :status,
-                    :emailVerified,
                     :createdAt,
                     :updatedAt
                 )
@@ -95,7 +94,6 @@ public class MemberDaoJdbc implements MemberDao {
                 .addValue("displayName", member.getDisplayName())
                 .addValue("role", member.getRole().name())
                 .addValue("status", member.getStatus().name())
-                .addValue("emailVerified", member.isEmailVerified())
                 .addValue("createdAt", Timestamp.valueOf(member.getCreatedAt()))
                 .addValue("updatedAt", Timestamp.valueOf(member.getUpdatedAt()));
 
@@ -104,12 +102,7 @@ public class MemberDaoJdbc implements MemberDao {
 
         namedParameterJdbcTemplate.update(sql, parameterSource, keyHolder, new String[]{"member_id"});
 
-        Number key = keyHolder.getKey();
-        if (key == null) {
-            throw new IllegalStateException("member insert key is null");
-        }
-
-        return key.longValue();
+        return keyHolder.getKey().longValue();
     }
 
     @Override
@@ -143,7 +136,6 @@ public class MemberDaoJdbc implements MemberDao {
                     .displayName(rs.getString("display_name"))
                     .role(MemberRole.valueOf(rs.getString("role")))
                     .status(MemberStatus.valueOf(rs.getString("status")))
-                    .emailVerified(rs.getBoolean("email_verified"))
                     .createdAt(rs.getTimestamp("created_at").toLocalDateTime())
                     .updatedAt(rs.getTimestamp("updated_at").toLocalDateTime())
                     .build();

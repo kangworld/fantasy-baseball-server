@@ -15,7 +15,6 @@ public class Member {
     private String displayName;
     private MemberRole role;
     private MemberStatus status;
-    private boolean emailVerified;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
