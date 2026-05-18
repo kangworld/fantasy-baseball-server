@@ -12,4 +12,6 @@ public interface RefreshTokenStore {
 
     void delete(Long userId, String tokenId);
 
+    void deleteAll(Long userId);
+
 }
