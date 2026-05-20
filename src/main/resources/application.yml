@@ -48,3 +48,6 @@ member:
     email-verification:
       code-expiration-minutes: ${SIGNUP_EMAIL_VERIFICATION_CODE_EXPIRATION_MINUTES:5}
       verified-expiration-minutes: ${SIGNUP_EMAIL_VERIFICATION_VERIFIED_EXPIRATION_MINUTES:10}
+
+abuse:
+  enabled: ${ABUSE_RATE_LIMIT_ENABLED:true}

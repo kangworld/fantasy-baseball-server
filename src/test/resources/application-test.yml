@@ -33,3 +33,6 @@ external:
     schedule-cache-ttl: 10m
     record-cache-ttl: 30s
     live-game-state-cache-ttl: 15s
+
+abuse:
+  enabled: false

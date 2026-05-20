@@ -19,6 +19,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -318,13 +319,12 @@ class RosterControllerTest {
     }
 
     private Map<String, Object> rosterRequest(List<Long> playerIds) {
-        List<Map<String, Object>> players = new ArrayList<>();
-        for (int index = 0; index < playerIds.size(); index++) {
-            players.add(Map.of(
-                    "slotNo", index + 1,
-                    "playerId", playerIds.get(index)
-            ));
-        }
+        List<Map<String, Object>> players = IntStream.range(0, playerIds.size())
+                .mapToObj(index -> Map.<String, Object>of(
+                        "slotNo", index + 1,
+                        "playerId", playerIds.get(index)
+                ))
+                .toList();
 
         return Map.of(
                 "players", players
@@ -340,7 +340,7 @@ class RosterControllerTest {
         LocalDateTime now = ROSTER_NOW;
         int dateId = DateIds.from(ROSTER_DATE);
 
-        for (int index = 0; index < playerIds.size(); index++) {
+        IntStream.range(0, playerIds.size()).forEach(index -> {
             Long playerId = playerIds.get(index);
             jdbcTemplate.update("""
                     insert into player (player_id, player_name, player_type, position_code, status, created_at, updated_at)
@@ -351,7 +351,7 @@ class RosterControllerTest {
                     insert into player_profile (date_id, player_id, team_code, pos, cost, point, avg_point, created_at, updated_at)
                     values (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, dateId, playerId, teamCode, positions[index], 1, 0, 0, now, now);
-        }
+        });
     }
 
     private void insertStartedGame(String homeTeamCode, String awayTeamCode) {

@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.kangworld.fantasybaseball.abuse.AbuseLimit;
 import com.kangworld.fantasybaseball.common.api.ApiResponse;
 import com.kangworld.fantasybaseball.member.service.MemberService;
 import com.kangworld.fantasybaseball.member.service.SignupEmailVerificationService;
@@ -27,6 +28,7 @@ public class MemberController {
     private final SignupEmailVerificationService signupEmailVerificationService;
 
     @PostMapping("/signup/email-verification")
+    @AbuseLimit(policy = "signup-email-verification-send", key = "#request.email", maxAttempts = 5, window = "5m")
     public ApiResponse<Void> sendSignupEmailVerification(@Valid @RequestBody SignupEmailVerificationSendRequest request) {
         signupEmailVerificationService.send(request);
 

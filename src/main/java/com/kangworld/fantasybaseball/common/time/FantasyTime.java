@@ -1,6 +1,7 @@
 package com.kangworld.fantasybaseball.common.time;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -28,6 +29,10 @@ public class FantasyTime {
 
     public LocalDateTime getDateTime() {
         return LocalDateTime.now(clock);
+    }
+
+    public Instant getInstant() {
+        return clock.instant();
     }
 
 }

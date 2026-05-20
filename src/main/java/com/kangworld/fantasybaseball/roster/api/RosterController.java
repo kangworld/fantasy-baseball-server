@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.kangworld.fantasybaseball.abuse.AbuseLimit;
 import com.kangworld.fantasybaseball.auth.security.AuthenticatedMember;
 import com.kangworld.fantasybaseball.common.api.ApiResponse;
 import com.kangworld.fantasybaseball.game.service.dto.PlayerRecordResponse;
@@ -33,6 +34,7 @@ public class RosterController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @AbuseLimit(policy = "roster-submit", key = "#authenticatedMember.memberId")
     public ApiResponse<RosterResponse> submit(
             @AuthenticationPrincipal AuthenticatedMember authenticatedMember,
             @Valid @RequestBody RosterSubmitRequest request) {
@@ -42,6 +44,7 @@ public class RosterController {
     }
 
     @PutMapping
+    @AbuseLimit(policy = "roster-submit", key = "#authenticatedMember.memberId")
     public ApiResponse<RosterResponse> update(
             @AuthenticationPrincipal AuthenticatedMember authenticatedMember,
             @Valid @RequestBody RosterSubmitRequest request) {

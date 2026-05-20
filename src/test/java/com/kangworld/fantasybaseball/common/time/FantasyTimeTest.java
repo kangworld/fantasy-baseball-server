@@ -41,6 +41,15 @@ class FantasyTimeTest {
         assertThat(dateTime).isEqualTo(LocalDateTime.of(2026, 5, 9, 2, 0));
     }
 
+    @Test
+    void getInstant는_주입된_clock의_instant를_반환한다() {
+        FantasyTime fantasyTime = new FantasyTime(fixedClock("2026-05-08T17:00:00Z"));
+
+        Instant instant = fantasyTime.getInstant();
+
+        assertThat(instant).isEqualTo(Instant.parse("2026-05-08T17:00:00Z"));
+    }
+
     private Clock fixedClock(String instant) {
         return Clock.fixed(Instant.parse(instant), SEOUL_ZONE_ID);
     }
