@@ -20,6 +20,7 @@ public class PlayerSummaryResponse {
     private int avgPoint;
     private String teamCode;
     private String pos;
+    private String imgPath;
 
     public static PlayerSummaryResponse from(PlayerSummary summary) {
         return PlayerSummaryResponse.builder()
@@ -32,6 +33,7 @@ public class PlayerSummaryResponse {
                 .avgPoint(summary.getAvgPoint())
                 .teamCode(summary.getTeamCode())
                 .pos(summary.getPos())
+                .imgPath(summary.getImgPath())
                 .build();
     }
 

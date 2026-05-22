@@ -1,5 +1,6 @@
 package com.kangworld.fantasybaseball.external.kbo.fetcher.api;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -10,14 +11,19 @@ import com.kangworld.fantasybaseball.external.kbo.model.KboGameStatusMapper;
 import com.kangworld.fantasybaseball.external.kbo.model.KboLiveGameState;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
 @Component
-@RequiredArgsConstructor
 public class KboLiveGameStateApiFetcher implements KboLiveGameStateFetcher {
 
     private final RestClient kboRestClient;
     private final KboGameStatusMapper gameStatusMapper;
+
+    public KboLiveGameStateApiFetcher(
+            @Qualifier("kboRestClient") RestClient kboRestClient,
+            KboGameStatusMapper gameStatusMapper) {
+        this.kboRestClient = kboRestClient;
+        this.gameStatusMapper = gameStatusMapper;
+    }
 
     @Override
     public KboLiveGameState fetch(String gameId) {

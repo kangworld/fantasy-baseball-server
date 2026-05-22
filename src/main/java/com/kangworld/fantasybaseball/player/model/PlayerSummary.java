@@ -16,5 +16,6 @@ public class PlayerSummary {
     private int avgPoint;
     private String teamCode;
     private String pos;
+    private String imgPath;
 
 }

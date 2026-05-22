@@ -23,6 +23,7 @@ import com.kangworld.fantasybaseball.player.model.PlayerType;
 @SpringBootTest
 @ActiveProfiles("test")
 @Sql(statements = {
+        "delete from player_image",
         "delete from player_profile",
         "delete from player"
 }, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
@@ -44,6 +45,7 @@ class PlayerDaoJdbcTest {
         insertProfile(todayDateId, 76290, "LG", "DH", 3, 12, 8);
         insertProfile(yesterdayDateId, 76290, "LG", "DH", 3, 99, 20);
         insertProfile(todayDateId, 12345, "LG", "LF", 1, 30, 10);
+        insertPlayerImage(76290, "players/2026/76290.jpg");
 
         PlayerSearchCondition condition = PlayerSearchCondition.builder()
                 .dateId(todayDateId)
@@ -56,6 +58,7 @@ class PlayerDaoJdbcTest {
         assertThat(summaries).hasSize(1);
         assertThat(summaries.get(0).getPlayerId()).isEqualTo(76290);
         assertThat(summaries.get(0).getPoint()).isEqualTo(12);
+        assertThat(summaries.get(0).getImgPath()).isEqualTo("players/2026/76290.jpg");
     }
 
     @Test
@@ -100,6 +103,15 @@ class PlayerDaoJdbcTest {
                 insert into player_profile (date_id, player_id, team_code, pos, cost, point, avg_point, created_at, updated_at)
                 values (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, dateId, playerId, teamCode, pos, cost, point, avgPoint, now, now);
+    }
+
+    private void insertPlayerImage(long playerId, String imgPath) {
+        LocalDateTime now = LocalDateTime.of(2026, 4, 28, 12, 0);
+
+        jdbcTemplate.update("""
+                insert into player_image (player_id, img_path, created_at, updated_at)
+                values (?, ?, ?, ?)
+                """, playerId, imgPath, now, now);
     }
 
 }

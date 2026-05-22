@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -21,16 +22,20 @@ import com.kangworld.fantasybaseball.external.kbo.model.KboGameStatus;
 import com.kangworld.fantasybaseball.external.kbo.model.KboGameStatusMapper;
 import com.kangworld.fantasybaseball.external.kbo.model.KboPitcherRecord;
 
-import lombok.RequiredArgsConstructor;
-
 @Component
-@RequiredArgsConstructor
 public class KboGameRecordApiFetcher implements KboGameRecordFetcher {
 
     private static final Pattern INNING_RESULT_FIELD_PATTERN = Pattern.compile("inn\\d+");
 
     private final RestClient kboRestClient;
     private final KboGameStatusMapper gameStatusMapper;
+
+    public KboGameRecordApiFetcher(
+            @Qualifier("kboRestClient") RestClient kboRestClient,
+            KboGameStatusMapper gameStatusMapper) {
+        this.kboRestClient = kboRestClient;
+        this.gameStatusMapper = gameStatusMapper;
+    }
 
     @Override
     public KboGameRecord fetch(String gameId) {

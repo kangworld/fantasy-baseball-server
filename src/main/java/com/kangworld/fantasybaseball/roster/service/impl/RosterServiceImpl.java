@@ -421,6 +421,7 @@ public class RosterServiceImpl implements RosterService {
                 .cost(summary.getCost())
                 .point(summary.getPoint())
                 .avgPoint(summary.getAvgPoint())
+                .imgPath(summary.getImgPath())
                 .build();
     }
 

@@ -1,0 +1,7 @@
+asset:
+  storage:
+    s3:
+      bucket: fantasy-baseball-dev-979769296786-ap-northeast-2-an
+      region: ap-northeast-2
+      path-prefix: public
+      cache-control: public, max-age=60

@@ -2,6 +2,7 @@ package com.kangworld.fantasybaseball.external.kbo.fetcher.api;
 
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -10,15 +11,17 @@ import com.kangworld.fantasybaseball.external.kbo.fetcher.KboTeamRankFetcher;
 import com.kangworld.fantasybaseball.external.kbo.model.KboTeamRank;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
 @Component
-@RequiredArgsConstructor
 public class KboTeamRankApiFetcher implements KboTeamRankFetcher {
 
     private static final String REGULAR_SEASON = "REGULAR_SEASON";
 
     private final RestClient kboRestClient;
+
+    public KboTeamRankApiFetcher(@Qualifier("kboRestClient") RestClient kboRestClient) {
+        this.kboRestClient = kboRestClient;
+    }
 
     @Override
     public List<KboTeamRank> fetch(int season) {

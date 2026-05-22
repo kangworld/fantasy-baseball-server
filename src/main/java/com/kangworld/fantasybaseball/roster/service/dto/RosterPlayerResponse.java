@@ -18,5 +18,6 @@ public class RosterPlayerResponse {
     private int cost;
     private int point;
     private int avgPoint;
+    private String imgPath;
 
 }

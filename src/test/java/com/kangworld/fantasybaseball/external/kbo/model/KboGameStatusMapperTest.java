@@ -54,9 +54,18 @@ class KboGameStatusMapperTest {
     }
 
     @Test
-    void 확인되지_않은_상태값은_UNKNOWN으로_매핑한다() {
+    void before는_READY로_매핑한다() {
         // given when
         KboGameStatus status = mapper.map("BEFORE", false, false);
+
+        // then
+        assertThat(status).isEqualTo(KboGameStatus.READY);
+    }
+
+    @Test
+    void 확인되지_않은_상태값은_UNKNOWN으로_매핑한다() {
+        // given when
+        KboGameStatus status = mapper.map("UNKNOWN_CODE", false, false);
 
         // then
         assertThat(status).isEqualTo(KboGameStatus.UNKNOWN);

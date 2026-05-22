@@ -30,9 +30,18 @@ security:
 external:
   kbo:
     base-url: https://api-gw.sports.naver.com
+    image-base-url: https://image.test.example.com
     schedule-cache-ttl: 10m
     record-cache-ttl: 30s
     live-game-state-cache-ttl: 15s
 
 abuse:
   enabled: false
+
+asset:
+  storage:
+    s3:
+      bucket: test-player-image
+      region: ap-northeast-2
+      path-prefix: public
+      cache-control: public, max-age=86400

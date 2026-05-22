@@ -39,9 +39,11 @@ public class PlayerDaoJdbc implements PlayerDao {
                     pp.point,
                     pp.avg_point,
                     pp.team_code,
-                    pp.pos
+                    pp.pos,
+                    pi.img_path as img_path
                 from player p
                 join player_profile pp on pp.player_id = p.player_id
+                left join player_image pi on pi.player_id = p.player_id
                 where pp.date_id = :dateId
                   and p.status = :status
                 """);
@@ -86,9 +88,11 @@ public class PlayerDaoJdbc implements PlayerDao {
                     pp.point,
                     pp.avg_point,
                     pp.team_code,
-                    pp.pos
+                    pp.pos,
+                    pi.img_path as img_path
                 from player p
                 join player_profile pp on pp.player_id = p.player_id
+                left join player_image pi on pi.player_id = p.player_id
                 where pp.date_id = :dateId
                   and p.status = :status
                   and p.player_id in (:playerIds)
@@ -117,6 +121,7 @@ public class PlayerDaoJdbc implements PlayerDao {
                     .avgPoint(rs.getInt("avg_point"))
                     .teamCode(rs.getString("team_code"))
                     .pos(rs.getString("pos"))
+                    .imgPath(rs.getString("img_path"))
                     .build();
         }
 

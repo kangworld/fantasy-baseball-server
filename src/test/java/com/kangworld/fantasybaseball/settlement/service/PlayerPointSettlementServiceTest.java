@@ -102,7 +102,7 @@ class PlayerPointSettlementServiceTest {
         ));
 
         // when
-        playerPointSettlementService.settle(targetDate);
+        PlayerPointSettlementResult result = playerPointSettlementService.settle(targetDate);
 
         // then
         ArgumentCaptor<List<PlayerDailyPoint>> dailyPointsCaptor = ArgumentCaptor.forClass(List.class);
@@ -124,6 +124,10 @@ class PlayerPointSettlementServiceTest {
                 .containsExactly(17, 30);
         assertThat(profilesCaptor.getValue()).extracting(PlayerProfile::getPointGameCount)
                 .containsExactly(3, 3);
+        assertThat(result.previousProfiles()).extracting(PlayerProfile::getPlayerId)
+                .containsExactly(100L, 200L);
+        assertThat(result.settledProfiles()).extracting(PlayerProfile::getPlayerId)
+                .containsExactly(100L, 200L);
         verify(gameRecordFetchService).fetch("game-2");
         verify(gameRecordFetchService).fetch("game-3");
         verifyNoMoreInteractions(gameRecordFetchService);

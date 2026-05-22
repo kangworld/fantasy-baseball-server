@@ -31,6 +31,7 @@ security:
 external:
   kbo:
     base-url: ${KBO_API_BASE_URL:https://api-gw.sports.naver.com}
+    image-base-url: ${KBO_IMAGE_BASE_URL:https://6ptotvmi5753.edge.naverncp.com}
     schedule-cache-ttl: 10m
     record-cache-ttl: 30s
     live-game-state-cache-ttl: 15s
@@ -51,3 +52,11 @@ member:
 
 abuse:
   enabled: ${ABUSE_RATE_LIMIT_ENABLED:true}
+
+asset:
+  storage:
+    s3:
+      bucket: ${ASSET_S3_BUCKET:}
+      region: ${ASSET_S3_REGION:ap-northeast-2}
+      path-prefix: ${ASSET_S3_PATH_PREFIX:public}
+      cache-control: ${ASSET_CACHE_CONTROL:public, max-age=86400}

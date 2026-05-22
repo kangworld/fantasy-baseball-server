@@ -2,6 +2,7 @@ package com.kangworld.fantasybaseball.settlement.service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.function.Supplier;
 
 import org.springframework.stereotype.Service;
 
@@ -33,6 +34,14 @@ public class SettlementExecutionRecorder {
     }
 
     public void runStep(long settlementExecutionId, SettlementStepName stepName, Runnable task) {
+        runStepWithResult(settlementExecutionId, stepName, () -> {
+            task.run();
+
+            return null;
+        });
+    }
+
+    public <T> T runStepWithResult(long settlementExecutionId, SettlementStepName stepName, Supplier<T> task) {
         long stepExecutionId = settlementStepExecutionDao.insertStarted(
                 settlementExecutionId,
                 stepName,
@@ -40,8 +49,10 @@ public class SettlementExecutionRecorder {
         );
 
         try {
-            task.run();
+            T result = task.get();
             settlementStepExecutionDao.updateDone(stepExecutionId, fantasyTime.getDateTime());
+
+            return result;
         } catch (RuntimeException exception) {
             LocalDateTime now = fantasyTime.getDateTime();
             settlementStepExecutionDao.updateFailed(

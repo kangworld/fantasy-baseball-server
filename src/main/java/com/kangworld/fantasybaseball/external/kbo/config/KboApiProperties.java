@@ -13,6 +13,7 @@ import lombok.Setter;
 public class KboApiProperties {
 
     private String baseUrl;
+    private String imageBaseUrl;
     private Duration scheduleCacheTtl;
     private Duration recordCacheTtl;
     private Duration liveGameStateCacheTtl;

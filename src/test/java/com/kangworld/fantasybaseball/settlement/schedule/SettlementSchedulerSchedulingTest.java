@@ -10,7 +10,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -19,7 +21,9 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import com.kangworld.fantasybaseball.common.time.FantasyTime;
+import com.kangworld.fantasybaseball.player.image.service.PlayerImageBatchService;
 import com.kangworld.fantasybaseball.settlement.model.SettlementStepName;
+import com.kangworld.fantasybaseball.settlement.service.PlayerPointSettlementResult;
 import com.kangworld.fantasybaseball.settlement.service.PlayerPointSettlementService;
 import com.kangworld.fantasybaseball.settlement.service.RankSettlementService;
 import com.kangworld.fantasybaseball.settlement.service.SettlementExecutionRecorder;
@@ -47,6 +51,9 @@ class SettlementSchedulerSchedulingTest {
     private FantasyTime fantasyTime;
 
     @MockitoBean
+    private PlayerImageBatchService playerImageBatchService;
+
+    @MockitoBean
     private RedisLockManager redisLockManager;
 
     @Test
@@ -56,6 +63,11 @@ class SettlementSchedulerSchedulingTest {
         given(fantasyTime.now()).willReturn(targetDate);
         given(settlementExecutionRecorder.canStart(targetDate)).willReturn(true);
         given(settlementExecutionRecorder.start(targetDate)).willReturn(1L);
+        given(settlementExecutionRecorder.runStepWithResult(
+                eq(1L),
+                eq(SettlementStepName.PLAYER_POINT),
+                org.mockito.ArgumentMatchers.<Supplier<PlayerPointSettlementResult>>any()
+        )).willReturn(new PlayerPointSettlementResult(List.of(), List.of()));
         given(redisLockManager.acquire(eq("settlement"), anyLong(), eq("daily")))
                 .willReturn(new RedisLock("fantasy-baseball::settlement-daily", "token"));
 
@@ -64,7 +76,11 @@ class SettlementSchedulerSchedulingTest {
                 .atMost(3, TimeUnit.SECONDS)
                 .untilAsserted(() -> {
                     verify(settlementExecutionRecorder, atLeastOnce())
-                            .runStep(eq(1L), eq(SettlementStepName.PLAYER_POINT), any(Runnable.class));
+                            .runStepWithResult(
+                                    eq(1L),
+                                    eq(SettlementStepName.PLAYER_POINT),
+                                    org.mockito.ArgumentMatchers.<Supplier<PlayerPointSettlementResult>>any()
+                            );
                     verify(settlementExecutionRecorder, atLeastOnce())
                             .runStep(eq(1L), eq(SettlementStepName.DAILY_RANK), any(Runnable.class));
                     verify(settlementExecutionRecorder, atLeastOnce())
@@ -85,7 +101,8 @@ class SettlementSchedulerSchedulingTest {
                 playerPointSettlementService,
                 rankSettlementService,
                 settlementExecutionRecorder,
-                fantasyTime
+                fantasyTime,
+                playerImageBatchService
         ).doDailySettlement();
 
         // then

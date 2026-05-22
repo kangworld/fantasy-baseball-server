@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -13,16 +14,21 @@ import com.kangworld.fantasybaseball.external.kbo.model.KboGameStatusMapper;
 import com.kangworld.fantasybaseball.external.kbo.model.KboScheduleGame;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
 @Component
-@RequiredArgsConstructor
 public class KboScheduleApiFetcher implements KboScheduleFetcher {
 
     private static final String KBO_CATEGORY = "kbo";
 
     private final RestClient kboRestClient;
     private final KboGameStatusMapper gameStatusMapper;
+
+    public KboScheduleApiFetcher(
+            @Qualifier("kboRestClient") RestClient kboRestClient,
+            KboGameStatusMapper gameStatusMapper) {
+        this.kboRestClient = kboRestClient;
+        this.gameStatusMapper = gameStatusMapper;
+    }
 
     @Override
     public List<KboScheduleGame> fetch(LocalDate fromDate, LocalDate toDate) {
