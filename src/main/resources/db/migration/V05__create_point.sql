@@ -1,4 +1,4 @@
-create table if not exists point_rule (
+﻿create table if not exists point_rule (
     player_type varchar(20) not null,
     record_code varchar(50) not null,
     point int not null,
@@ -19,8 +19,8 @@ create table if not exists player_daily_point (
     primary key (date_id, game_id, player_id)
 );
 
-create index if not exists idx_player_daily_point_player on player_daily_point (player_id, date_id);
-create index if not exists idx_player_daily_point_date_point on player_daily_point (date_id, point);
+create index idx_player_daily_point_player on player_daily_point (player_id, date_id);
+create index idx_player_daily_point_date_point on player_daily_point (date_id, point);
 
 create table if not exists kbo_game_record_raw (
     game_id varchar(50) primary key,
@@ -30,7 +30,7 @@ create table if not exists kbo_game_record_raw (
     updated_at timestamp not null
 );
 
-create index if not exists idx_kbo_game_record_raw_fetched_at on kbo_game_record_raw (fetched_at);
+create index idx_kbo_game_record_raw_fetched_at on kbo_game_record_raw (fetched_at);
 
 insert into point_rule (player_type, record_code, point, description, active, created_at, updated_at)
 select 'BATTER', 'BAT_HIT', 2, '안타', true, current_timestamp, current_timestamp
@@ -123,3 +123,4 @@ where not exists (select 1 from point_rule where player_type = 'PITCHER' and rec
 insert into point_rule (player_type, record_code, point, description, active, created_at, updated_at)
 select 'PITCHER', 'PIT_BK', -1, '보크', true, current_timestamp, current_timestamp
 where not exists (select 1 from point_rule where player_type = 'PITCHER' and record_code = 'PIT_BK');
+

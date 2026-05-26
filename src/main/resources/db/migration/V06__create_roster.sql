@@ -1,4 +1,4 @@
-create table if not exists roster (
+﻿create table if not exists roster (
     roster_id bigint auto_increment primary key,
     member_id bigint not null,
     date_id int not null,
@@ -7,7 +7,7 @@ create table if not exists roster (
     constraint uk_roster_member_date unique (member_id, date_id)
 );
 
-create index if not exists idx_roster_date_id on roster (date_id);
+create index idx_roster_date_id on roster (date_id);
 
 create table if not exists roster_player (
     roster_player_id bigint auto_increment primary key,
@@ -22,4 +22,5 @@ create table if not exists roster_player (
     constraint uk_roster_player_player unique (roster_id, player_id)
 );
 
-create index if not exists idx_roster_player_player_id on roster_player (player_id);
+create index idx_roster_player_player_id on roster_player (player_id);
+
