@@ -1,29 +1,60 @@
 services:
-  mysql:
-    image: mysql:8.0
-    container_name: fantasy-baseball-mysql
+  app:
+    build:
+      context: .
+    image: fantasy-baseball-server:local
+    container_name: fantasy-baseball-app-local
     ports:
-      - "3306:3306"
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/fantasy_baseball?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+      SPRING_DATASOURCE_USERNAME: fantasy
+      SPRING_DATASOURCE_PASSWORD: fantasy
+      JWT_SECRET: fantasy-baseball-docker-jwt-secret-key-2026-local-dev-only
+      MAIL_PASSWORD: temporary-mail-password
+      ASSET_S3_BUCKET: fantasy-baseball-dev-979769296786-ap-northeast-2-an
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  mysql:
+    image: mysql:8.4
+    container_name: fantasy-baseball-mysql-local
     environment:
       MYSQL_DATABASE: fantasy_baseball
       MYSQL_USER: fantasy
       MYSQL_PASSWORD: fantasy
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: fantasy-root
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "3306:3306"
     volumes:
-      - mysql-data:/var/lib/mysql
+      - mysql-local-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   redis:
     image: redis:7.2-alpine
-    container_name: fantasy-baseball-redis
+    container_name: fantasy-baseball-redis-local
+    command: ["redis-server", "--appendonly", "yes"]
     ports:
       - "6379:6379"
-    command: ["redis-server", "--appendonly", "yes"]
     volumes:
-      - redis-data:/data
+      - redis-local-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
 volumes:
-  mysql-data:
-  redis-data:
+  mysql-local-data:
+  redis-local-data:

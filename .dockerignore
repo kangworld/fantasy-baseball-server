@@ -1,0 +1,11 @@
+.codex
+.git
+.gradle
+.gradle-user-home
+.gradle-user-home-temp
+.idea
+build
+docs
+*.iml
+Dockerfile
+docker-compose*.yml
