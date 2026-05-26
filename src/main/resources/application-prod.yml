@@ -1,0 +1,10 @@
+spring:
+  config:
+    import: "aws-parameterstore:/fantasy-baseball/prod/"
+  cloud:
+    aws:
+      parameterstore:
+        enabled: true
+        region: ap-northeast-2
+      region:
+        static: ap-northeast-2

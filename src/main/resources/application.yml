@@ -4,17 +4,31 @@ server:
 spring:
   application:
     name: fantasy-baseball-server
+  cloud:
+    aws:
+      parameterstore:
+        enabled: false
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://mysql:3306/fantasy_baseball?serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
+    username: ${SPRING_DATASOURCE_USERNAME:fantasy}
+    password: ${SPRING_DATASOURCE_PASSWORD:fantasy}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: redis
+      port: 6379
+      timeout: 3s
   mail:
-    host: ${MAIL_HOST:localhost}
-    port: ${MAIL_PORT:1025}
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
+    host: smtp.gmail.com
+    port: 587
+    username: fantasybaseballkr@gmail.com
+    password: ${MAIL_PASSWORD:temporary-mail-password}
     properties:
       mail:
         smtp:
-          auth: ${MAIL_SMTP_AUTH:false}
+          auth: true
           starttls:
-            enable: ${MAIL_SMTP_STARTTLS_ENABLE:false}
+            enable: true
 
 management:
   endpoints:
@@ -24,14 +38,14 @@ management:
 
 security:
   jwt:
-    secret: ${JWT_SECRET:fantasy-baseball-local-secret-key-2026}
-    access-token-expiration-seconds: ${JWT_ACCESS_TOKEN_EXPIRATION_SECONDS:3600}
-    refresh-token-expiration-seconds: ${JWT_REFRESH_TOKEN_EXPIRATION_SECONDS:1209600}
+    secret: ${JWT_SECRET:fantasy-baseball-local-jwt-secret-key-2026}
+    access-token-expiration-seconds: 3600
+    refresh-token-expiration-seconds: 1209600
 
 external:
   kbo:
-    base-url: ${KBO_API_BASE_URL:https://api-gw.sports.naver.com}
-    image-base-url: ${KBO_IMAGE_BASE_URL:https://6ptotvmi5753.edge.naverncp.com}
+    base-url: https://api-gw.sports.naver.com
+    image-base-url: https://6ptotvmi5753.edge.naverncp.com
     schedule-cache-ttl: 10m
     record-cache-ttl: 30s
     live-game-state-cache-ttl: 15s
@@ -39,24 +53,30 @@ external:
 
 settlement:
   schedule:
-    daily-cron: "${SETTLEMENT_DAILY_CRON:0 0 2 * * *}"
-    zone: "${SETTLEMENT_SCHEDULE_ZONE:Asia/Seoul}"
+    daily-cron: "0 0 2 * * *"
+    zone: "Asia/Seoul"
 
 member:
   mail:
-    from: ${MEMBER_MAIL_FROM:no-reply@fantasy-baseball.local}
+    from: fantasybaseballkr@gmail.com
   signup:
     email-verification:
-      code-expiration-minutes: ${SIGNUP_EMAIL_VERIFICATION_CODE_EXPIRATION_MINUTES:5}
-      verified-expiration-minutes: ${SIGNUP_EMAIL_VERIFICATION_VERIFIED_EXPIRATION_MINUTES:10}
+      code-expiration-minutes: 5
+      verified-expiration-minutes: 10
 
 abuse:
-  enabled: ${ABUSE_RATE_LIMIT_ENABLED:true}
+  enabled: true
 
 asset:
   storage:
     s3:
-      bucket: ${ASSET_S3_BUCKET:}
-      region: ${ASSET_S3_REGION:ap-northeast-2}
-      path-prefix: ${ASSET_S3_PATH_PREFIX:public}
-      cache-control: ${ASSET_CACHE_CONTROL:public, max-age=86400}
+      bucket: ${ASSET_S3_BUCKET:fantasy-baseball-dev-979769296786-ap-northeast-2-an}
+      region: ap-northeast-2
+      path-prefix: public
+      cache-control: public, max-age=86400
+
+redis:
+  core:
+    host: redis
+    port: 6379
+    namespace: fantasy-baseball
