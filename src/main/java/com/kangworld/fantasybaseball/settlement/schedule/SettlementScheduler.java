@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 import com.kangworld.fantasybaseball.common.time.FantasyTime;
 import com.kangworld.fantasybaseball.player.image.service.PlayerImageBatchService;
 import com.kangworld.fantasybaseball.settlement.model.SettlementStepName;
-import com.kangworld.fantasybaseball.settlement.service.PlayerPointSettlementResult;
+import com.kangworld.fantasybaseball.settlement.service.PlayerCostSettlementService;
 import com.kangworld.fantasybaseball.settlement.service.PlayerPointSettlementService;
 import com.kangworld.fantasybaseball.settlement.service.RankSettlementService;
 import com.kangworld.fantasybaseball.settlement.service.SettlementExecutionRecorder;
@@ -23,6 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 public class SettlementScheduler {
 
     private final PlayerPointSettlementService playerPointSettlementService;
+    private final PlayerCostSettlementService playerCostSettlementService;
     private final RankSettlementService rankSettlementService;
     private final SettlementExecutionRecorder settlementExecutionRecorder;
     private final FantasyTime fantasyTime;
@@ -37,10 +38,15 @@ public class SettlementScheduler {
             return;
 
         long settlementExecutionId = settlementExecutionRecorder.start(targetDate);
-        PlayerPointSettlementResult playerPointSettlementResult = settlementExecutionRecorder.runStepWithResult(
+        settlementExecutionRecorder.runStep(
                 settlementExecutionId,
                 SettlementStepName.PLAYER_POINT,
                 () -> playerPointSettlementService.settle(targetDate)
+        );
+        settlementExecutionRecorder.runStep(
+                settlementExecutionId,
+                SettlementStepName.PLAYER_COST,
+                () -> playerCostSettlementService.settle(targetDate)
         );
         settlementExecutionRecorder.runStep(
                 settlementExecutionId,
@@ -54,13 +60,13 @@ public class SettlementScheduler {
         );
         settlementExecutionRecorder.done(settlementExecutionId);
 
-        refreshPlayerImages(targetDate, playerPointSettlementResult);
+        refreshPlayerImages(targetDate);
     }
 
-    private void refreshPlayerImages(LocalDate targetDate, PlayerPointSettlementResult playerPointSettlementResult) {
+    private void refreshPlayerImages(LocalDate targetDate) {
         try {
             // 선수 이미지는 화면 보조 데이터라 실패해도 포인트/랭킹 정산 완료를 막지 않는다.
-            playerImageBatchService.refresh(targetDate, playerPointSettlementResult);
+            playerImageBatchService.refresh(targetDate);
         } catch (RuntimeException exception) {
             log.warn("player image refresh failed. targetDate={}", targetDate, exception);
         }

@@ -42,7 +42,7 @@ public class SecurityConfig {
         // 인증이 비어 있거나 토큰이 유효하지 않으면 API 공통 포맷으로 401을 반환.
         http.exceptionHandling(exception -> exception.authenticationEntryPoint(apiAuthenticationEntryPoint));
 
-        // 인증/헬스체크와 공개 랭킹만 열고, 개인화 API는 보호 API로 묶는다.
+        // 인증/헬스체크와 공개 조회 API만 열고, 개인화 API는 보호 API로 묶는다.
         http.authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                         "/api/health",
@@ -54,6 +54,7 @@ public class SecurityConfig {
                         "/api/members/signup/email-verification/confirm",
                         "/api/auth/login",
                         "/api/auth/refresh",
+                        "/api/rosters/config",
                         "/api/ranks/daily",
                         "/api/ranks/season"
                 ).permitAll()

@@ -4,6 +4,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -33,6 +34,24 @@ public class PlayerProfilePointDaoJdbc implements PlayerProfilePointDao {
                 """;
 
         return namedParameterJdbcTemplate.query(sql, new MapSqlParameterSource("dateId", dateId), ROW_MAPPER);
+    }
+
+    @Override
+    public List<PlayerProfile> findByDateIds(Set<Integer> dateIds) {
+        if (dateIds.isEmpty())
+            return List.of();
+
+        String sql = """
+                select *
+                from player_profile
+                where date_id in (:dateIds)
+                order by date_id asc, player_id asc
+                """;
+
+        return namedParameterJdbcTemplate.query(
+                sql,
+                new MapSqlParameterSource("dateIds", dateIds),
+                ROW_MAPPER);
     }
 
     @Override

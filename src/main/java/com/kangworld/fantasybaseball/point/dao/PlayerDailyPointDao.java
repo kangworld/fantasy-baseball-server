@@ -12,4 +12,6 @@ public interface PlayerDailyPointDao {
 
     Map<Long, Integer> findPointByPlayerIds(int dateId, Set<Long> playerIds);
 
+    Map<Long, Integer> findTotalPointByPlayerIdsBetweenDateIds(int fromDateId, int toDateId, Set<Long> playerIds);
+
 }

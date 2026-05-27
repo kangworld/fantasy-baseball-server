@@ -46,7 +46,7 @@ public class PlayerPointSettlementService {
     private final FantasyTime fantasyTime;
 
     @Transactional
-    public PlayerPointSettlementResult settle(LocalDate targetDate) {
+    public void settle(LocalDate targetDate) {
         // 정산은 완료 또는 서스펜디드 경기만 확정 데이터로 보고, 진행 중 경기는 실시간 조회에만 사용한다.
         List<KboGameRecord> gameRecords = scheduleFetchService.fetch(targetDate).stream()
                 .filter(this::isSettlementTarget)
@@ -54,7 +54,7 @@ public class PlayerPointSettlementService {
                 .map(gameRecordFetchService::fetch)
                 .toList();
 
-        return applyGameRecords(targetDate, gameRecords);
+        applyGameRecords(targetDate, gameRecords);
     }
 
     private boolean isSettlementTarget(KboScheduleGame game) {
@@ -63,7 +63,7 @@ public class PlayerPointSettlementService {
         return status == KboGameStatus.FINISHED || status == KboGameStatus.SUSPENDED;
     }
 
-    private PlayerPointSettlementResult applyGameRecords(LocalDate targetDate, List<KboGameRecord> gameRecords) {
+    private void applyGameRecords(LocalDate targetDate, List<KboGameRecord> gameRecords) {
         // 하루치 record API 결과를 선수 일간 포인트와 프로필 누적값으로 반영한다.
         int dateId = DateIds.from(targetDate);
         LocalDateTime now = fantasyTime.getDateTime();
@@ -71,7 +71,7 @@ public class PlayerPointSettlementService {
         List<PlayerDailyPoint> dailyPoints = calculateDailyPoints(dateId, gameRecords, now);
         playerDailyPointDao.upsertAll(dailyPoints);
 
-        return updateProfiles(targetDate, dailyPoints, now);
+        updateProfiles(targetDate, dailyPoints, now);
     }
 
     private List<PlayerDailyPoint> calculateDailyPoints(
@@ -121,7 +121,7 @@ public class PlayerPointSettlementService {
         return Stream.concat(batterPoints, pitcherPoints);
     }
 
-    private PlayerPointSettlementResult updateProfiles(
+    private void updateProfiles(
             LocalDate targetDate,
             List<PlayerDailyPoint> dailyPoints,
             LocalDateTime now) {
@@ -146,8 +146,6 @@ public class PlayerPointSettlementService {
                 .toList();
 
         playerProfilePointDao.upsertAll(profiles);
-
-        return new PlayerPointSettlementResult(previousProfiles, profiles);
     }
 
     private PlayerProfile toProfile(

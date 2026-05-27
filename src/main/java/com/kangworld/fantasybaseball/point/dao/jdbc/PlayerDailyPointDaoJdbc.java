@@ -71,6 +71,30 @@ public class PlayerDailyPointDaoJdbc implements PlayerDailyPointDao {
         ).stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
+    @Override
+    public Map<Long, Integer> findTotalPointByPlayerIdsBetweenDateIds(int fromDateId, int toDateId, Set<Long> playerIds) {
+        // 코스트 산정은 최근 구간의 선수별 총점을 쓰므로 game_id 단위 row를 선수 단위로 합산한다.
+        if (playerIds.isEmpty())
+            return Map.of();
+
+        String sql = """
+                select player_id, sum(point) as point
+                from player_daily_point
+                where date_id between :fromDateId and :toDateId
+                  and player_id in (:playerIds)
+                group by player_id
+                """;
+
+        MapSqlParameterSource parameters = new MapSqlParameterSource()
+                .addValue("fromDateId", fromDateId)
+                .addValue("toDateId", toDateId)
+                .addValue("playerIds", playerIds);
+
+        return namedParameterJdbcTemplate.query(sql, parameters, (rs, rowNum) ->
+                Map.entry(rs.getLong("player_id"), rs.getInt("point"))
+        ).stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
     private MapSqlParameterSource toParameterSource(PlayerDailyPoint dailyPoint) {
         return new MapSqlParameterSource()
                 .addValue("dateId", dailyPoint.getDateId())

@@ -36,8 +36,12 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kangworld.fantasybaseball.auth.token.JwtAccessTokenFactory;
 import com.kangworld.fantasybaseball.common.date.DateIds;
+import com.kangworld.fantasybaseball.external.kbo.model.KboGameStatus;
+import com.kangworld.fantasybaseball.external.kbo.model.KboScheduleGame;
+import com.kangworld.fantasybaseball.external.kbo.service.KboScheduleFetchService;
 import com.kangworld.fantasybaseball.game.service.GameService;
 import com.kangworld.fantasybaseball.game.service.dto.PlayerRecordResponse;
+import com.kangworld.fantasybaseball.player.model.PlayerPosition;
 import com.kangworld.fantasybaseball.player.model.PlayerType;
 import com.kangworld.rediscore.lock.RedisLock;
 import com.kangworld.rediscore.lock.RedisLockManager;
@@ -49,8 +53,7 @@ import com.kangworld.rediscore.lock.RedisLockManager;
         "delete from roster_player",
         "delete from roster",
         "delete from player_profile",
-        "delete from player",
-        "delete from game"
+        "delete from player"
 }, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 class RosterControllerTest {
 
@@ -79,12 +82,16 @@ class RosterControllerTest {
     @MockitoBean
     private GameService gameService;
 
+    @MockitoBean
+    private KboScheduleFetchService scheduleFetchService;
+
     @BeforeEach
     void setUp() {
         given(clock.instant()).willReturn(Instant.parse("2026-05-04T03:00:00Z"));
         given(clock.getZone()).willReturn(SEOUL_ZONE_ID);
         given(redisLockManager.acquire(eq("roster"), eq(3L), any()))
                 .willReturn(new RedisLock("fantasy-baseball::roster-1", "token"));
+        given(scheduleFetchService.fetch(ROSTER_DATE)).willReturn(List.of());
     }
 
     @Test
@@ -104,6 +111,20 @@ class RosterControllerTest {
     }
 
     @Test
+    void rosters_config는_라인업_보드_구성에_필요한_로스터_규칙을_반환한다() throws Exception {
+        // when then
+        mockMvc.perform(get("/api/rosters/config"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.slotCount").doesNotExist())
+                .andExpect(jsonPath("$.data.costLimit").value(40))
+                .andExpect(jsonPath("$.data.positions.length()").value(10))
+                .andExpect(jsonPath("$.data.positions[0].rosterPosition").value("P"))
+                .andExpect(jsonPath("$.data.positions[0].count").value(5))
+                .andExpect(jsonPath("$.data.positions[1].rosterPosition").value("C"))
+                .andExpect(jsonPath("$.data.positions[9].rosterPosition").value("DH"));
+    }
+
+    @Test
     void rosters_me는_로스터를_제출한다() throws Exception {
         // given
         insertRosterPlayers(defaultPlayerIds());
@@ -120,7 +141,8 @@ class RosterControllerTest {
                 .andExpect(jsonPath("$.message").value("로스터 제출이 완료되었습니다."))
                 .andExpect(jsonPath("$.data.date").value(ROSTER_DATE.toString()))
                 .andExpect(jsonPath("$.data.players.length()").value(14))
-                .andExpect(jsonPath("$.data.players[0].slotNo").value(1))
+                .andExpect(jsonPath("$.data.players[0].rosterPosition").value("P"))
+                .andExpect(jsonPath("$.data.players[0].positionOrder").value(1))
                 .andExpect(jsonPath("$.data.players[0].playerId").value(101));
     }
 
@@ -243,10 +265,48 @@ class RosterControllerTest {
     }
 
     @Test
+    void rosters_me는_비용_제한을_초과하면_거절한다() throws Exception {
+        // given
+        insertRosterPlayers(defaultPlayerIds());
+        jdbcTemplate.update("update player_profile set cost = 3");
+
+        String accessToken = jwtAccessTokenFactory.create(1L, "USER");
+        String requestBody = objectMapper.writeValueAsString(rosterRequest(defaultPlayerIds()));
+
+        // when then
+        mockMvc.perform(post("/api/rosters/me")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("로스터 비용 제한을 초과했습니다."));
+    }
+
+    @Test
+    void rosters_me는_라인업_칸에_맞지_않는_선수를_거절한다() throws Exception {
+        // given
+        insertRosterPlayers(defaultPlayerIds());
+        List<Long> playerIds = defaultPlayerIds();
+        playerIds.set(0, 106L);
+        playerIds.set(5, 101L);
+
+        String accessToken = jwtAccessTokenFactory.create(1L, "USER");
+        String requestBody = objectMapper.writeValueAsString(rosterRequest(playerIds));
+
+        // when then
+        mockMvc.perform(post("/api/rosters/me")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("로스터 포지션에 등록할 수 없는 선수 유형입니다."));
+    }
+
+    @Test
     void rosters_me는_이미_시작한_경기의_선수를_제출할_수_없다() throws Exception {
         // given
         insertRosterPlayers(defaultPlayerIds());
-        insertStartedGame("LG", "HH");
+        givenStartedSchedule("LG", "HH");
         String accessToken = jwtAccessTokenFactory.create(1L, "USER");
         String requestBody = objectMapper.writeValueAsString(rosterRequest(defaultPlayerIds()));
 
@@ -262,7 +322,7 @@ class RosterControllerTest {
     }
 
     @Test
-    void rosters_me는_이미_시작한_경기의_선수가_같은_슬롯에_남아있으면_수정한다() throws Exception {
+    void rosters_me는_이미_시작한_경기의_선수가_그대로_남아있으면_수정한다() throws Exception {
         // given
         List<Long> firstPlayerIds = defaultPlayerIds();
         List<Long> secondPlayerIds = replacementPlayerIds();
@@ -277,7 +337,7 @@ class RosterControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(rosterRequest(firstPlayerIds))));
 
-        insertStartedGame("LG", "HH");
+        givenStartedSchedule("LG", "HH");
 
         // when then
         mockMvc.perform(put("/api/rosters/me")
@@ -290,14 +350,14 @@ class RosterControllerTest {
     }
 
     @Test
-    void rosters_me는_이미_시작한_경기의_선수_슬롯이_바뀌면_거절한다() throws Exception {
+    void rosters_me는_이미_시작한_경기의_선수를_교체하면_거절한다() throws Exception {
         // given
         List<Long> playerIds = defaultPlayerIds();
         List<Long> movedPlayerIds = defaultPlayerIds();
-        movedPlayerIds.set(0, playerIds.get(1));
-        movedPlayerIds.set(1, playerIds.get(0));
+        movedPlayerIds.set(0, replacementPlayerIds().get(0));
 
         insertRosterPlayers(playerIds);
+        insertRosterPlayers(replacementPlayerIds());
 
         String accessToken = jwtAccessTokenFactory.create(1L, "USER");
         mockMvc.perform(post("/api/rosters/me")
@@ -305,7 +365,7 @@ class RosterControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(rosterRequest(playerIds))));
 
-        insertStartedGame("LG", "HH");
+        givenStartedSchedule("LG", "HH");
 
         // when then
         mockMvc.perform(put("/api/rosters/me")
@@ -321,7 +381,8 @@ class RosterControllerTest {
     private Map<String, Object> rosterRequest(List<Long> playerIds) {
         List<Map<String, Object>> players = IntStream.range(0, playerIds.size())
                 .mapToObj(index -> Map.<String, Object>of(
-                        "slotNo", index + 1,
+                        "rosterPosition", rosterPosition(index).name(),
+                        "positionOrder", positionOrder(index),
                         "playerId", playerIds.get(index)
                 ))
                 .toList();
@@ -332,10 +393,10 @@ class RosterControllerTest {
     }
 
     private void insertRosterPlayers(List<Long> playerIds) {
-        String[] positions = {"C", "B1", "B2", "B3", "SS", "LF", "CF", "RF", "DH", "P", "P", "P", "P", "P"};
+        String[] positions = {"P", "P", "P", "P", "P", "C", "B1", "B2", "B3", "SS", "LF", "CF", "RF", "DH"};
         String[] types = {
-                "BATTER", "BATTER", "BATTER", "BATTER", "BATTER", "BATTER", "BATTER", "BATTER", "BATTER",
-                "PITCHER", "PITCHER", "PITCHER", "PITCHER", "PITCHER"
+                "PITCHER", "PITCHER", "PITCHER", "PITCHER", "PITCHER",
+                "BATTER", "BATTER", "BATTER", "BATTER", "BATTER", "BATTER", "BATTER", "BATTER", "BATTER"
         };
         LocalDateTime now = ROSTER_NOW;
         int dateId = DateIds.from(ROSTER_DATE);
@@ -354,12 +415,38 @@ class RosterControllerTest {
         });
     }
 
-    private void insertStartedGame(String homeTeamCode, String awayTeamCode) {
-        LocalDateTime now = ROSTER_NOW;
-        jdbcTemplate.update("""
-                insert into game (start_at, home_team_code, away_team_code, game_status, created_at, updated_at)
-                values (?, ?, ?, ?, ?, ?)
-                """, now.minusMinutes(10), homeTeamCode, awayTeamCode, "PLAYING", now, now);
+    private PlayerPosition rosterPosition(int index) {
+        if (index < 5)
+            return PlayerPosition.P;
+
+        return List.of(
+                PlayerPosition.C,
+                PlayerPosition.B1,
+                PlayerPosition.B2,
+                PlayerPosition.B3,
+                PlayerPosition.SS,
+                PlayerPosition.LF,
+                PlayerPosition.CF,
+                PlayerPosition.RF,
+                PlayerPosition.DH
+        ).get(index - 5);
+    }
+
+    private int positionOrder(int index) {
+        if (index < 5)
+            return index + 1;
+
+        return 1;
+    }
+
+    private void givenStartedSchedule(String homeTeamCode, String awayTeamCode) {
+        given(scheduleFetchService.fetch(ROSTER_DATE)).willReturn(List.of(KboScheduleGame.builder()
+                .gameId("game-1")
+                .startAt(ROSTER_NOW.minusMinutes(10))
+                .homeTeamCode(homeTeamCode)
+                .awayTeamCode(awayTeamCode)
+                .status(KboGameStatus.PLAYING)
+                .build()));
     }
 
     private PlayerRecordResponse buildPlayerRecord(long playerId) {

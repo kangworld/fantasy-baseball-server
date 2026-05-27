@@ -12,7 +12,6 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import com.kangworld.fantasybaseball.player.model.PlayerPosition;
-import com.kangworld.fantasybaseball.player.model.PlayerType;
 import com.kangworld.fantasybaseball.roster.dao.RosterPlayerDao;
 import com.kangworld.fantasybaseball.roster.model.RosterPlayer;
 
@@ -36,10 +35,9 @@ public class RosterPlayerDaoJdbc implements RosterPlayerDao {
                 insert into roster_player values (
                     default,
                     :rosterId,
-                    :slotNo,
+                    :rosterPosition,
+                    :positionOrder,
                     :playerId,
-                    :playerType,
-                    :positionCode,
                     :createdAt,
                     :updatedAt
                 )
@@ -58,7 +56,7 @@ public class RosterPlayerDaoJdbc implements RosterPlayerDao {
                 select *
                 from roster_player
                 where roster_id = :rosterId
-                order by slot_no asc
+                order by roster_position asc, position_order asc
                 """;
 
         return namedParameterJdbcTemplate.query(
@@ -77,7 +75,7 @@ public class RosterPlayerDaoJdbc implements RosterPlayerDao {
                 select *
                 from roster_player
                 where roster_id in (:rosterIds)
-                order by roster_id asc, slot_no asc
+                order by roster_id asc, roster_position asc, position_order asc
                 """;
 
         return namedParameterJdbcTemplate.query(
@@ -100,10 +98,9 @@ public class RosterPlayerDaoJdbc implements RosterPlayerDao {
     private MapSqlParameterSource toParameterSource(RosterPlayer player) {
         return new MapSqlParameterSource()
                 .addValue("rosterId", player.getRosterId())
-                .addValue("slotNo", player.getSlotNo())
+                .addValue("rosterPosition", player.getRosterPosition().name())
+                .addValue("positionOrder", player.getPositionOrder())
                 .addValue("playerId", player.getPlayerId())
-                .addValue("playerType", player.getPlayerType().name())
-                .addValue("positionCode", player.getPositionCode().name())
                 .addValue("createdAt", Timestamp.valueOf(player.getCreatedAt()))
                 .addValue("updatedAt", Timestamp.valueOf(player.getUpdatedAt()));
     }
@@ -115,10 +112,9 @@ public class RosterPlayerDaoJdbc implements RosterPlayerDao {
             return RosterPlayer.builder()
                     .rosterPlayerId(rs.getLong("roster_player_id"))
                     .rosterId(rs.getLong("roster_id"))
-                    .slotNo(rs.getInt("slot_no"))
+                    .rosterPosition(PlayerPosition.valueOf(rs.getString("roster_position")))
+                    .positionOrder(rs.getInt("position_order"))
                     .playerId(rs.getLong("player_id"))
-                    .playerType(PlayerType.valueOf(rs.getString("player_type")))
-                    .positionCode(PlayerPosition.valueOf(rs.getString("position_code")))
                     .createdAt(rs.getTimestamp("created_at").toLocalDateTime())
                     .updatedAt(rs.getTimestamp("updated_at").toLocalDateTime())
                     .build();

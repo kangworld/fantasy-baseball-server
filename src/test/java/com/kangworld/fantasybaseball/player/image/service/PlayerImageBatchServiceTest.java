@@ -11,6 +11,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -29,7 +30,7 @@ import com.kangworld.fantasybaseball.external.kbo.fetcher.KboPlayerImageFetcher;
 import com.kangworld.fantasybaseball.player.image.dao.PlayerImageDao;
 import com.kangworld.fantasybaseball.player.image.model.PlayerImage;
 import com.kangworld.fantasybaseball.player.model.PlayerProfile;
-import com.kangworld.fantasybaseball.settlement.service.PlayerPointSettlementResult;
+import com.kangworld.fantasybaseball.point.dao.PlayerProfilePointDao;
 
 @ExtendWith(MockitoExtension.class)
 class PlayerImageBatchServiceTest {
@@ -45,6 +46,9 @@ class PlayerImageBatchServiceTest {
     @Mock
     private AssetStorage assetStorage;
 
+    @Mock
+    private PlayerProfilePointDao playerProfilePointDao;
+
     private PlayerImageBatchService playerImageBatchService;
 
     @BeforeEach
@@ -54,7 +58,8 @@ class PlayerImageBatchServiceTest {
                 playerImageDao,
                 kboPlayerImageFetcher,
                 assetStorage,
-                fantasyTime);
+                fantasyTime,
+                playerProfilePointDao);
     }
 
     @Test
@@ -62,11 +67,13 @@ class PlayerImageBatchServiceTest {
         // given
         byte[] bytes = "image".getBytes();
         AssetFile imageFile = imageFile(bytes);
+        given(playerProfilePointDao.findByDateIds(Set.of(20260510, 20260511)))
+                .willReturn(List.of(profile(20260510, 100L, "LG"), profile(20260511, 100L, "LG")));
         given(playerImageDao.findByPlayerIds(Set.of(100L))).willReturn(Map.of());
         given(kboPlayerImageFetcher.fetch(100L, 2026)).willReturn(Optional.of(imageFile));
 
         // when
-        playerImageBatchService.refresh(LocalDate.of(2026, 5, 11), settlementResult(profile(100L, "LG"), profile(100L, "LG")));
+        playerImageBatchService.refresh(LocalDate.of(2026, 5, 11));
 
         // then
         verify(assetStorage).upload("player/100.jpg", imageFile);
@@ -84,12 +91,14 @@ class PlayerImageBatchServiceTest {
                 .playerId(100L)
                 .imgPath("player/100.jpg")
                 .build();
+        given(playerProfilePointDao.findByDateIds(Set.of(20260510, 20260511)))
+                .willReturn(List.of(profile(20260510, 100L, "LG"), profile(20260511, 100L, "KT")));
         given(playerImageDao.findByPlayerIds(Set.of(100L))).willReturn(Map.of(100L, savedImage));
         given(kboPlayerImageFetcher.fetch(100L, 2026)).willReturn(Optional.of(imageFile(bytes)));
         given(assetStorage.findBytes("player/100.jpg")).willReturn(Optional.of(bytes));
 
         // when
-        playerImageBatchService.refresh(LocalDate.of(2026, 5, 11), settlementResult(profile(100L, "LG"), profile(100L, "KT")));
+        playerImageBatchService.refresh(LocalDate.of(2026, 5, 11));
 
         // then
         verify(assetStorage, never()).upload(any(), any());
@@ -99,11 +108,13 @@ class PlayerImageBatchServiceTest {
     @Test
     void refresh는_KBO에_이미지가_없으면_저장하지_않는다() {
         // given
+        given(playerProfilePointDao.findByDateIds(Set.of(20260510, 20260511)))
+                .willReturn(List.of(profile(20260510, 100L, "LG"), profile(20260511, 100L, "LG")));
         given(playerImageDao.findByPlayerIds(Set.of(100L))).willReturn(Map.of());
         given(kboPlayerImageFetcher.fetch(100L, 2026)).willReturn(Optional.empty());
 
         // when
-        playerImageBatchService.refresh(LocalDate.of(2026, 5, 11), settlementResult(profile(100L, "LG"), profile(100L, "LG")));
+        playerImageBatchService.refresh(LocalDate.of(2026, 5, 11));
 
         // then
         verify(assetStorage, never()).upload(any(), any());
@@ -117,10 +128,12 @@ class PlayerImageBatchServiceTest {
                 .playerId(100L)
                 .imgPath("player/100.jpg")
                 .build();
+        given(playerProfilePointDao.findByDateIds(Set.of(20260510, 20260511)))
+                .willReturn(List.of(profile(20260510, 100L, "LG"), profile(20260511, 100L, "LG")));
         given(playerImageDao.findByPlayerIds(Set.of(100L))).willReturn(Map.of(100L, savedImage));
 
         // when
-        playerImageBatchService.refresh(LocalDate.of(2026, 5, 11), settlementResult(profile(100L, "LG"), profile(100L, "LG")));
+        playerImageBatchService.refresh(LocalDate.of(2026, 5, 11));
 
         // then
         verify(kboPlayerImageFetcher, never()).fetch(anyLong(), anyInt());
@@ -136,12 +149,13 @@ class PlayerImageBatchServiceTest {
                 .build();
     }
 
-    private PlayerPointSettlementResult settlementResult(PlayerProfile previousProfile, PlayerProfile currentProfile) {
-        return new PlayerPointSettlementResult(java.util.List.of(previousProfile), java.util.List.of(currentProfile));
+    private PlayerProfile profile(long playerId, String teamCode) {
+        return profile(20260511, playerId, teamCode);
     }
 
-    private PlayerProfile profile(long playerId, String teamCode) {
+    private PlayerProfile profile(int dateId, long playerId, String teamCode) {
         return PlayerProfile.builder()
+                .dateId(dateId)
                 .playerId(playerId)
                 .teamCode(teamCode)
                 .build();

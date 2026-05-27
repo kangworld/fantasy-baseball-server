@@ -15,7 +15,6 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.jdbc.Sql;
 
 import com.kangworld.fantasybaseball.player.model.PlayerPosition;
-import com.kangworld.fantasybaseball.player.model.PlayerType;
 import com.kangworld.fantasybaseball.roster.dao.RosterDao;
 import com.kangworld.fantasybaseball.roster.dao.RosterPlayerDao;
 import com.kangworld.fantasybaseball.roster.model.Roster;
@@ -36,20 +35,20 @@ class RosterPlayerDaoJdbcTest {
     private RosterPlayerDao rosterPlayerDao;
 
     @Test
-    void insertAll은_로스터_선수를_저장하고_slotNo_순서로_조회한다() {
+    void insertAll은_로스터_선수를_저장하고_포지션_순서로_조회한다() {
         // given
         long rosterId = insertRoster();
         rosterPlayerDao.insertAll(List.of(
-                buildPlayer(rosterId, 2, 78548L, PlayerType.BATTER, PlayerPosition.C),
-                buildPlayer(rosterId, 1, 76290L, PlayerType.BATTER, PlayerPosition.DH),
-                buildPlayer(rosterId, 3, 63492L, PlayerType.PITCHER, PlayerPosition.P)
+                buildPlayer(rosterId, PlayerPosition.P, 2, 78548L),
+                buildPlayer(rosterId, PlayerPosition.P, 1, 76290L),
+                buildPlayer(rosterId, PlayerPosition.P, 3, 63492L)
         ));
 
         // when
         List<RosterPlayer> players = rosterPlayerDao.findByRosterId(rosterId);
 
         // then
-        assertThat(players).extracting(RosterPlayer::getSlotNo)
+        assertThat(players).extracting(RosterPlayer::getPositionOrder)
                 .containsExactly(1, 2, 3);
         assertThat(players).extracting(RosterPlayer::getPlayerId)
                 .containsExactly(76290L, 78548L, 63492L);
@@ -62,9 +61,9 @@ class RosterPlayerDaoJdbcTest {
         long secondRosterId = insertRoster(2L);
         long otherRosterId = insertRoster(3L);
         rosterPlayerDao.insertAll(List.of(
-                buildPlayer(firstRosterId, 1, 100L, PlayerType.BATTER, PlayerPosition.DH),
-                buildPlayer(secondRosterId, 1, 200L, PlayerType.BATTER, PlayerPosition.C),
-                buildPlayer(otherRosterId, 1, 300L, PlayerType.PITCHER, PlayerPosition.P)
+                buildPlayer(firstRosterId, PlayerPosition.DH, 1, 100L),
+                buildPlayer(secondRosterId, PlayerPosition.C, 1, 200L),
+                buildPlayer(otherRosterId, PlayerPosition.P, 1, 300L)
         ));
 
         // when
@@ -78,12 +77,12 @@ class RosterPlayerDaoJdbcTest {
     }
 
     @Test
-    void insertAll은_같은_로스터에서_slotNo를_중복_저장할_수_없다() {
+    void insertAll은_같은_로스터에서_포지션_순서를_중복_저장할_수_없다() {
         // given
         long rosterId = insertRoster();
         List<RosterPlayer> players = List.of(
-                buildPlayer(rosterId, 1, 76290L, PlayerType.BATTER, PlayerPosition.DH),
-                buildPlayer(rosterId, 1, 78548L, PlayerType.BATTER, PlayerPosition.C)
+                buildPlayer(rosterId, PlayerPosition.P, 1, 76290L),
+                buildPlayer(rosterId, PlayerPosition.P, 1, 78548L)
         );
 
         // when then
@@ -96,8 +95,8 @@ class RosterPlayerDaoJdbcTest {
         // given
         long rosterId = insertRoster();
         List<RosterPlayer> players = List.of(
-                buildPlayer(rosterId, 1, 76290L, PlayerType.BATTER, PlayerPosition.DH),
-                buildPlayer(rosterId, 2, 76290L, PlayerType.BATTER, PlayerPosition.DH)
+                buildPlayer(rosterId, PlayerPosition.DH, 1, 76290L),
+                buildPlayer(rosterId, PlayerPosition.C, 1, 76290L)
         );
 
         // when then
@@ -122,19 +121,17 @@ class RosterPlayerDaoJdbcTest {
 
     private RosterPlayer buildPlayer(
             long rosterId,
-            int slotNo,
-            long playerId,
-            PlayerType playerType,
-            PlayerPosition positionCode
+            PlayerPosition rosterPosition,
+            int positionOrder,
+            long playerId
     ) {
         LocalDateTime now = LocalDateTime.of(2026, 5, 4, 10, 0);
 
         return RosterPlayer.builder()
                 .rosterId(rosterId)
-                .slotNo(slotNo)
+                .rosterPosition(rosterPosition)
+                .positionOrder(positionOrder)
                 .playerId(playerId)
-                .playerType(playerType)
-                .positionCode(positionCode)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();

@@ -10,7 +10,8 @@ import lombok.Getter;
 @Builder
 public class RosterPlayerResponse {
 
-    private int slotNo;
+    private PlayerPosition rosterPosition;
+    private int positionOrder;
     private long playerId;
     private String playerName;
     private PlayerType playerType;

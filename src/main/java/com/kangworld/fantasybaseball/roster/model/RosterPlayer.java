@@ -3,7 +3,6 @@ package com.kangworld.fantasybaseball.roster.model;
 import java.time.LocalDateTime;
 
 import com.kangworld.fantasybaseball.player.model.PlayerPosition;
-import com.kangworld.fantasybaseball.player.model.PlayerType;
 
 import lombok.Builder;
 import lombok.Getter;
@@ -14,10 +13,9 @@ public class RosterPlayer {
 
     private long rosterPlayerId;
     private long rosterId;
-    private int slotNo;
+    private PlayerPosition rosterPosition;
+    private int positionOrder;
     private long playerId;
-    private PlayerType playerType;
-    private PlayerPosition positionCode;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
