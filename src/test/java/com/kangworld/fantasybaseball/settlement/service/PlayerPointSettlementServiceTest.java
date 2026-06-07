@@ -69,7 +69,8 @@ class PlayerPointSettlementServiceTest {
     @Test
     void settle은_FINISHED와_SUSPENDED_경기만_기록을_조회해_선수_포인트를_저장한다() {
         // given
-        LocalDate targetDate = LocalDate.of(2026, 5, 11);
+        LocalDate settlementDate = LocalDate.of(2026, 5, 12);
+        LocalDate gameDate = LocalDate.of(2026, 5, 11);
         LocalDateTime now = LocalDateTime.of(2026, 5, 12, 2, 0);
         KboGameRecord finishedRecord = gameRecord("game-2");
         KboGameRecord suspendedRecord = gameRecord("game-3");
@@ -81,7 +82,7 @@ class PlayerPointSettlementServiceTest {
                 .gameId("game-2")
                 .playerId(100L)
                 .build();
-        given(scheduleFetchService.fetch(targetDate)).willReturn(List.of(
+        given(scheduleFetchService.fetch(gameDate)).willReturn(List.of(
                 game("game-1", KboGameStatus.PLAYING),
                 game("game-2", KboGameStatus.FINISHED),
                 game("game-3", KboGameStatus.SUSPENDED),
@@ -99,12 +100,12 @@ class PlayerPointSettlementServiceTest {
                 .willReturn(new CalculatedPlayerPoint("game-2", 100L, 5));
         given(pointCalculator.calculatePitcher(pitcherRecord, List.of()))
                 .willReturn(new CalculatedPlayerPoint("game-2", 100L, 2));
-        given(playerProfilePointDao.findByDateId(20260510)).willReturn(List.of(
+        given(playerProfilePointDao.findByDateId(20260511)).willReturn(List.of(
                 profile(100L, 10, 2),
                 profile(200L, 30, 3)
         ));
         // when
-        playerPointSettlementService.settle(targetDate);
+        playerPointSettlementService.settle(settlementDate, gameDate);
 
         // then
         ArgumentCaptor<List<PlayerDailyPoint>> dailyPointsCaptor = ArgumentCaptor.forClass(List.class);
@@ -113,7 +114,7 @@ class PlayerPointSettlementServiceTest {
         verify(playerProfilePointDao).insertAll(profilesCaptor.capture());
 
         assertThat(dailyPointsCaptor.getValue()).extracting(PlayerDailyPoint::getDateId)
-                .containsExactly(20260511);
+                .containsExactly(20260512);
         assertThat(dailyPointsCaptor.getValue()).extracting(PlayerDailyPoint::getGameId)
                 .containsExactly("game-2");
         assertThat(dailyPointsCaptor.getValue()).extracting(PlayerDailyPoint::getPlayerId)
@@ -158,7 +159,7 @@ class PlayerPointSettlementServiceTest {
 
     private PlayerProfile profile(long playerId, int point, int pointGameCount) {
         return PlayerProfile.builder()
-                .dateId(20260510)
+                .dateId(20260511)
                 .playerId(playerId)
                 .cost(10)
                 .point(point)

@@ -27,6 +27,10 @@ public class FantasyTime {
         return dateTime.toLocalDate();
     }
 
+    public LocalDate rawNow() {
+        return getDateTime().toLocalDate();
+    }
+
     public LocalDateTime getDateTime() {
         return LocalDateTime.now(clock);
     }

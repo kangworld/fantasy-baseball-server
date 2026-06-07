@@ -13,6 +13,7 @@ import java.time.LocalDate;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -57,20 +58,20 @@ class SettlementSchedulerTest {
     private SettlementScheduler settlementScheduler;
 
     @Test
-    void doDailySettlement는_FantasyTime_now를_정산_대상_날짜로_사용한다() {
+    void doDailySettlement는_rawNow를_정산_기준일로_사용한다() {
         // given
-        LocalDate fantasyDate = LocalDate.of(2026, 5, 11);
-        given(fantasyTime.now()).willReturn(fantasyDate);
-        given(settlementExecutionRecorder.canStart(fantasyDate)).willReturn(true);
-        given(settlementExecutionRecorder.start(fantasyDate)).willReturn(1L);
+        LocalDate settlementDate = LocalDate.of(2026, 5, 12);
+        given(fantasyTime.rawNow()).willReturn(settlementDate);
+        given(settlementExecutionRecorder.canStart(settlementDate)).willReturn(true);
+        given(settlementExecutionRecorder.start(settlementDate)).willReturn(1L);
 
         // when
         settlementScheduler.doDailySettlement();
 
         // then
         InOrder inOrder = inOrder(settlementExecutionRecorder);
-        inOrder.verify(settlementExecutionRecorder).canStart(fantasyDate);
-        inOrder.verify(settlementExecutionRecorder).start(fantasyDate);
+        inOrder.verify(settlementExecutionRecorder).canStart(settlementDate);
+        inOrder.verify(settlementExecutionRecorder).start(settlementDate);
         inOrder.verify(settlementExecutionRecorder)
                 .runStep(eq(1L), eq(SettlementStepName.PLAYER_BUILD), any(Runnable.class));
         inOrder.verify(settlementExecutionRecorder)
@@ -82,32 +83,69 @@ class SettlementSchedulerTest {
         inOrder.verify(settlementExecutionRecorder)
                 .runStep(eq(1L), eq(SettlementStepName.SEASON_RANK), any(Runnable.class));
         inOrder.verify(settlementExecutionRecorder).done(1L);
-        verify(playerImageBatchService).refresh(fantasyDate);
+        verify(playerImageBatchService).refresh(settlementDate);
+    }
+
+    @Test
+    void doDailySettlement는_정산일과_경기일을_분리해_스텝을_호출한다() {
+        // given
+        LocalDate settlementDate = LocalDate.of(2026, 6, 7);
+        LocalDate gameDate = LocalDate.of(2026, 6, 6);
+        given(settlementExecutionRecorder.canStart(settlementDate)).willReturn(true);
+        given(settlementExecutionRecorder.start(settlementDate)).willReturn(1L);
+
+        // when
+        settlementScheduler.doDailySettlement(settlementDate);
+
+        // then
+        ArgumentCaptor<Runnable> playerBuildStep = ArgumentCaptor.forClass(Runnable.class);
+        ArgumentCaptor<Runnable> playerPointStep = ArgumentCaptor.forClass(Runnable.class);
+        ArgumentCaptor<Runnable> playerCostStep = ArgumentCaptor.forClass(Runnable.class);
+        ArgumentCaptor<Runnable> dailyRankStep = ArgumentCaptor.forClass(Runnable.class);
+        ArgumentCaptor<Runnable> seasonRankStep = ArgumentCaptor.forClass(Runnable.class);
+
+        verify(settlementExecutionRecorder).runStep(eq(1L), eq(SettlementStepName.PLAYER_BUILD), playerBuildStep.capture());
+        verify(settlementExecutionRecorder).runStep(eq(1L), eq(SettlementStepName.PLAYER_POINT), playerPointStep.capture());
+        verify(settlementExecutionRecorder).runStep(eq(1L), eq(SettlementStepName.PLAYER_COST), playerCostStep.capture());
+        verify(settlementExecutionRecorder).runStep(eq(1L), eq(SettlementStepName.DAILY_RANK), dailyRankStep.capture());
+        verify(settlementExecutionRecorder).runStep(eq(1L), eq(SettlementStepName.SEASON_RANK), seasonRankStep.capture());
+
+        playerBuildStep.getValue().run();
+        playerPointStep.getValue().run();
+        playerCostStep.getValue().run();
+        dailyRankStep.getValue().run();
+        seasonRankStep.getValue().run();
+
+        verify(playerBuildSettlementService).settle(gameDate);
+        verify(playerPointSettlementService).settle(settlementDate, gameDate);
+        verify(playerCostSettlementService).settle(settlementDate);
+        verify(rankSettlementService).settleDaily(settlementDate);
+        verify(rankSettlementService).settleSeason(settlementDate);
     }
 
     @Test
     void doDailySettlement는_전날_정산이_DONE이_아니면_시작하지_않는다() {
         // given
-        LocalDate fantasyDate = LocalDate.of(2026, 5, 11);
-        given(fantasyTime.now()).willReturn(fantasyDate);
-        given(settlementExecutionRecorder.canStart(fantasyDate)).willReturn(false);
+        LocalDate settlementDate = LocalDate.of(2026, 5, 11);
+        given(fantasyTime.rawNow()).willReturn(settlementDate);
+        given(settlementExecutionRecorder.canStart(settlementDate)).willReturn(false);
 
         // when
         settlementScheduler.doDailySettlement();
 
         // then
-        verify(settlementExecutionRecorder, never()).start(fantasyDate);
+        verify(settlementExecutionRecorder, never()).start(settlementDate);
     }
 
     @Test
     void doDailySettlement는_이미지_갱신이_실패해도_랭킹_정산을_계속한다() {
         // given
-        LocalDate fantasyDate = LocalDate.of(2026, 5, 11);
-        given(fantasyTime.now()).willReturn(fantasyDate);
-        given(settlementExecutionRecorder.canStart(fantasyDate)).willReturn(true);
-        given(settlementExecutionRecorder.start(fantasyDate)).willReturn(1L);
+        LocalDate settlementDate = LocalDate.of(2026, 5, 11);
+        given(fantasyTime.rawNow()).willReturn(settlementDate);
+        given(settlementExecutionRecorder.canStart(settlementDate)).willReturn(true);
+        given(settlementExecutionRecorder.start(settlementDate)).willReturn(1L);
         willThrow(new IllegalStateException("s3 failure"))
-                .given(playerImageBatchService).refresh(fantasyDate);
+                .given(playerImageBatchService).refresh(settlementDate);
 
         // when
         settlementScheduler.doDailySettlement();
@@ -129,12 +167,16 @@ class SettlementSchedulerTest {
         // when
         Scheduled scheduled = SettlementScheduler.class.getMethod("doDailySettlement").getAnnotation(Scheduled.class);
         RedisLock redisLock = SettlementScheduler.class.getMethod("doDailySettlement").getAnnotation(RedisLock.class);
+        RedisLock manualRedisLock = SettlementScheduler.class.getMethod("doDailySettlement", LocalDate.class)
+                .getAnnotation(RedisLock.class);
 
         // then
         assertThat(scheduled.cron()).isEqualTo("${settlement.schedule.daily-cron}");
         assertThat(scheduled.zone()).isEqualTo("${settlement.schedule.zone}");
         assertThat(redisLock.name()).isEqualTo("settlement");
         assertThat(redisLock.key()).isEqualTo("'daily'");
+        assertThat(manualRedisLock.name()).isEqualTo("settlement");
+        assertThat(manualRedisLock.key()).isEqualTo("'daily'");
     }
 
 }

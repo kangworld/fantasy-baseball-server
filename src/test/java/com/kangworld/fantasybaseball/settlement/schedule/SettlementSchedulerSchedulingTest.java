@@ -65,7 +65,7 @@ class SettlementSchedulerSchedulingTest {
     void 정산_스케줄러는_프로퍼티로_주입한_cron에_따라_실행된다() {
         // given
         LocalDate targetDate = LocalDate.of(2026, 5, 11);
-        given(fantasyTime.now()).willReturn(targetDate);
+        given(fantasyTime.rawNow()).willReturn(targetDate);
         given(settlementExecutionRecorder.canStart(targetDate)).willReturn(true);
         given(settlementExecutionRecorder.start(targetDate)).willReturn(1L);
         given(redisLockManager.acquire(eq("settlement"), anyLong(), eq("daily")))
@@ -93,7 +93,7 @@ class SettlementSchedulerSchedulingTest {
     void 전날_정산이_DONE이_아니면_당일_정산을_시작하지_않는다() {
         // given
         LocalDate targetDate = LocalDate.of(2026, 5, 11);
-        given(fantasyTime.now()).willReturn(targetDate);
+        given(fantasyTime.rawNow()).willReturn(targetDate);
         given(settlementExecutionRecorder.canStart(targetDate)).willReturn(false);
 
         // when

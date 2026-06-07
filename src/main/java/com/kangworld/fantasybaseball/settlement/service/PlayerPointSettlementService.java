@@ -43,7 +43,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class PlayerPointSettlementService {
 
-    private static final int NEW_PLAYER_COST = 3;
+    private static final int NEW_PLAYER_COST = 2;
 
     private final KboScheduleFetchService scheduleFetchService;
     private final KboGameRecordFetchService gameRecordFetchService;
@@ -55,15 +55,15 @@ public class PlayerPointSettlementService {
     private final FantasyTime fantasyTime;
 
     @Transactional
-    public void settle(LocalDate targetDate) {
+    public void settle(LocalDate settlementDate, LocalDate gameDate) {
         // 정산은 완료 또는 서스펜디드 경기만 확정 데이터로 보고, 진행 중 경기는 실시간 조회에만 사용한다.
-        List<KboGameRecord> gameRecords = scheduleFetchService.fetch(targetDate).stream()
+        List<KboGameRecord> gameRecords = scheduleFetchService.fetch(gameDate).stream()
                 .filter(this::isSettlementTarget)
                 .map(KboScheduleGame::getGameId)
                 .map(gameRecordFetchService::fetch)
                 .toList();
 
-        applyGameRecords(targetDate, gameRecords);
+        applyGameRecords(settlementDate, gameRecords);
     }
 
     private boolean isSettlementTarget(KboScheduleGame game) {

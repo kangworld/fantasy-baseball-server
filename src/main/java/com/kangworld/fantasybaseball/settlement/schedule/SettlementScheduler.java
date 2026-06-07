@@ -34,40 +34,46 @@ public class SettlementScheduler {
     @Scheduled(cron = "${settlement.schedule.daily-cron}", zone = "${settlement.schedule.zone}")
     @RedisLock(name = "settlement", key = "'daily'")
     public void doDailySettlement() {
-        // 02:00 실행 시점은 아직 전날 판타지 날짜라 FantasyTime.now()를 그대로 정산 대상으로 쓴다.
-        LocalDate targetDate = fantasyTime.now();
-        if (!settlementExecutionRecorder.canStart(targetDate))
+        // 정산 결과는 사용자가 조회할 현재 서비스 날짜에 저장하고, 경기 기록은 전날 경기에서 가져온다.
+        doDailySettlement(fantasyTime.rawNow());
+    }
+
+    @RedisLock(name = "settlement", key = "'daily'")
+    public void doDailySettlement(LocalDate settlementDate) {
+        // 수동 실행과 스케줄 실행이 같은 정산 순서를 타도록 날짜만 외부에서 받을 수 있게 분리한다.
+        if (!settlementExecutionRecorder.canStart(settlementDate))
             return;
 
-        long settlementExecutionId = settlementExecutionRecorder.start(targetDate);
+        LocalDate gameDate = settlementDate.minusDays(1);
+        long settlementExecutionId = settlementExecutionRecorder.start(settlementDate);
         settlementExecutionRecorder.runStep(
                 settlementExecutionId,
                 SettlementStepName.PLAYER_BUILD,
-                () -> playerBuildSettlementService.settle(targetDate)
+                () -> playerBuildSettlementService.settle(gameDate)
         );
         settlementExecutionRecorder.runStep(
                 settlementExecutionId,
                 SettlementStepName.PLAYER_POINT,
-                () -> playerPointSettlementService.settle(targetDate)
+                () -> playerPointSettlementService.settle(settlementDate, gameDate)
         );
         settlementExecutionRecorder.runStep(
                 settlementExecutionId,
                 SettlementStepName.PLAYER_COST,
-                () -> playerCostSettlementService.settle(targetDate)
+                () -> playerCostSettlementService.settle(settlementDate)
         );
         settlementExecutionRecorder.runStep(
                 settlementExecutionId,
                 SettlementStepName.DAILY_RANK,
-                () -> rankSettlementService.settleDaily(targetDate)
+                () -> rankSettlementService.settleDaily(settlementDate)
         );
         settlementExecutionRecorder.runStep(
                 settlementExecutionId,
                 SettlementStepName.SEASON_RANK,
-                () -> rankSettlementService.settleSeason(targetDate)
+                () -> rankSettlementService.settleSeason(settlementDate)
         );
         settlementExecutionRecorder.done(settlementExecutionId);
 
-        refreshPlayerImages(targetDate);
+        refreshPlayerImages(settlementDate);
     }
 
     private void refreshPlayerImages(LocalDate targetDate) {

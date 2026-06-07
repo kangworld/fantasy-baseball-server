@@ -24,6 +24,15 @@ class FantasyTimeTest {
     }
 
     @Test
+    void rawNow는_03시_전이어도_실제_현재_날짜를_반환한다() {
+        FantasyTime fantasyTime = new FantasyTime(fixedClock("2026-05-08T17:59:00Z"));
+
+        LocalDate currentDate = fantasyTime.rawNow();
+
+        assertThat(currentDate).isEqualTo(LocalDate.of(2026, 5, 9));
+    }
+
+    @Test
     void now는_03시부터_당일을_반환한다() {
         FantasyTime fantasyTime = new FantasyTime(fixedClock("2026-05-08T18:00:00Z"));
 
