@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -20,6 +21,7 @@ import com.kangworld.fantasybaseball.auth.security.JwtAuthenticationFilter;
 import com.kangworld.fantasybaseball.common.api.ApiAuthenticationEntryPoint;
 
 @Configuration
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -60,6 +62,7 @@ public class SecurityConfig {
 
         // 인증/헬스체크와 공개 조회 API만 열고, 개인화 API는 보호 API로 묶는다.
         http.authorizeHttpRequests(auth -> auth
+                .requestMatchers("/api/commands/**").hasAuthority("ADMIN")
                 .requestMatchers(
                         "/api/health",
                         "/api/app-config",
