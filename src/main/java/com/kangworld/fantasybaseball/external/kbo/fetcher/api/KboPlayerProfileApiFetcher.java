@@ -1,19 +1,18 @@
 package com.kangworld.fantasybaseball.external.kbo.fetcher.api;
 
-import java.util.Optional;
-
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.kangworld.fantasybaseball.external.kbo.fetcher.KboPlayerProfileFetcher;
 import com.kangworld.fantasybaseball.external.kbo.model.KboPlayerProfile;
 import com.kangworld.fantasybaseball.player.model.PlayerPosition;
 import com.kangworld.fantasybaseball.player.model.PlayerType;
-
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClient;
+
+import java.util.Optional;
 
 @Slf4j
 @Component
@@ -84,6 +83,7 @@ public class KboPlayerProfileApiFetcher implements KboPlayerProfileFetcher {
     @Getter
     @JsonIgnoreProperties(ignoreUnknown = true)
     private static class PlayerResponse {
+        @JsonProperty("playerName")
         private String name;
         private String position;
     }

@@ -23,6 +23,7 @@ import com.kangworld.fantasybaseball.external.kbo.model.KboGameStatusMapper;
 import com.kangworld.fantasybaseball.external.kbo.model.KboPitcherRecord;
 import com.kangworld.fantasybaseball.player.model.PlayerPosition;
 
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -77,7 +78,8 @@ public class KboGameRecordApiFetcher implements KboGameRecordFetcher {
         pitchers.addAll(toPitcherRecords(recordData.pitchersBoxscore == null ? List.of() : recordData.pitchersBoxscore.home, recordData.gameInfo.hCode));
 
         return KboGameRecord.builder()
-                .gameId(recordData.gameInfo.gameId)
+                // record API의 gameInfo에는 gameId가 내려오지 않아 요청에 사용한 gameId를 그대로 보존한다.
+                .gameId(gameId)
                 .status(gameStatusMapper.map(recordData.gameInfo.statusCode, false, false))
                 .batterRecords(List.copyOf(batters))
                 .pitcherRecords(List.copyOf(pitchers))
@@ -178,16 +180,19 @@ public class KboGameRecordApiFetcher implements KboGameRecordFetcher {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
+    @Getter
     private static class GameRecordResponse {
         private GameRecordResult result;
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
+    @Getter
     private static class GameRecordResult {
         private RecordDataResponse recordData;
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
+    @Getter
     private static class RecordDataResponse {
         private GameInfoResponse gameInfo;
         private List<EtcRecordResponse> etcRecords;
@@ -196,20 +201,24 @@ public class KboGameRecordApiFetcher implements KboGameRecordFetcher {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
+    @Getter
     private static class GameInfoResponse {
-        private String gameId;
         private String statusCode;
+        @JsonProperty("aCode")
         private String aCode;
+        @JsonProperty("hCode")
         private String hCode;
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
+    @Getter
     private static class BattersBoxScoreResponse {
         private List<BatterRecordResponse> away;
         private List<BatterRecordResponse> home;
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
+    @Getter
     private static class BatterRecordResponse {
         private String playerCode;
         private String name;
@@ -246,12 +255,14 @@ public class KboGameRecordApiFetcher implements KboGameRecordFetcher {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
+    @Getter
     private static class PitchersBoxScoreResponse {
         private List<PitcherRecordResponse> away;
         private List<PitcherRecordResponse> home;
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
+    @Getter
     private static class PitcherRecordResponse {
         @JsonProperty("pcode")
         private String playerCode;
@@ -269,6 +280,7 @@ public class KboGameRecordApiFetcher implements KboGameRecordFetcher {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
+    @Getter
     private static class EtcRecordResponse {
         private String how;
         private String result;
