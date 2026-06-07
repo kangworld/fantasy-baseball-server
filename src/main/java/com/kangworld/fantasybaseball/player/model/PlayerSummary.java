@@ -1,5 +1,7 @@
 package com.kangworld.fantasybaseball.player.model;
 
+import java.time.LocalDateTime;
+
 import lombok.Builder;
 import lombok.Getter;
 
@@ -7,15 +9,15 @@ import lombok.Getter;
 @Builder
 public class PlayerSummary {
 
-    private long playerId;
-    private String playerName;
-    private PlayerType playerType;
-    private PlayerPosition positionCode;
+    private long id;
+    private String name;
+    private PlayerType type;
+    private PlayerPosition position;
     private int cost;
     private int point;
     private int avgPoint;
     private String teamCode;
-    private String pos;
+    private LocalDateTime teamUpdatedAt;
     private String imgPath;
 
 }

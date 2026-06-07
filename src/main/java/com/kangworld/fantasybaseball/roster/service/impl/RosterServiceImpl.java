@@ -176,7 +176,7 @@ public class RosterServiceImpl implements RosterService {
     private Map<Long, PlayerSummary> getPlayerSummaries(int dateId, Set<Long> playerIds) {
         Map<Long, PlayerSummary> playerSummaryById = playerDao.findSummariesByPlayerIds(dateId, playerIds)
                 .stream()
-                .collect(Collectors.toMap(PlayerSummary::getPlayerId, Function.identity()));
+                .collect(Collectors.toMap(PlayerSummary::getId, Function.identity()));
 
         if (playerSummaryById.size() != playerIds.size())
             throw new RosterValidationException("선수 정보가 올바르지 않습니다.");
@@ -216,11 +216,11 @@ public class RosterServiceImpl implements RosterService {
                 throw new RosterValidationException("로스터 포지션 순서가 올바르지 않습니다.");
 
             // 라인업 칸의 선수 유형과 실제 선수 유형이 다르면 클라이언트 필터 우회 요청으로 본다.
-            if (player.isPitcher() != (summary.getPlayerType() == PlayerType.PITCHER))
+            if (player.isPitcher() != (summary.getType() == PlayerType.PITCHER))
                 throw new RosterValidationException("로스터 포지션에 등록할 수 없는 선수 유형입니다.");
 
             // DH는 타자 포지션 전체를 허용하고, 나머지 포지션은 동일 포지션 선수만 허용한다.
-            if (!isAllowedPosition(player.getRosterPosition(), summary.getPositionCode()))
+            if (!isAllowedPosition(player.getRosterPosition(), summary.getPosition()))
                 throw new RosterValidationException("로스터 포지션에 등록할 수 없는 선수 포지션입니다.");
         });
     }
@@ -279,7 +279,7 @@ public class RosterServiceImpl implements RosterService {
             Set<String> startedTeamCodes) {
         return playerSummaryById.values().stream()
                 .filter(player -> startedTeamCodes.contains(player.getTeamCode()))
-                .map(PlayerSummary::getPlayerId)
+                .map(PlayerSummary::getId)
                 .collect(Collectors.toSet());
     }
 
@@ -307,7 +307,7 @@ public class RosterServiceImpl implements RosterService {
                 .collect(Collectors.toSet());
         Map<Long, PlayerSummary> playerSummaryById = playerDao.findSummariesByPlayerIds(roster.getDateId(), playerIds)
                 .stream()
-                .collect(Collectors.toMap(PlayerSummary::getPlayerId, Function.identity()));
+                .collect(Collectors.toMap(PlayerSummary::getId, Function.identity()));
 
         List<RosterPlayerResponse> playerResponses = rosterPlayers.stream()
                 .map(player -> toPlayerResponse(player.getRosterPosition(), player.getPositionOrder(), playerSummaryById.get(player.getPlayerId())))
@@ -347,10 +347,10 @@ public class RosterServiceImpl implements RosterService {
         return RosterPlayerResponse.builder()
                 .rosterPosition(rosterPosition)
                 .positionOrder(positionOrder)
-                .playerId(summary.getPlayerId())
-                .playerName(summary.getPlayerName())
-                .playerType(summary.getPlayerType())
-                .positionCode(summary.getPositionCode())
+                .playerId(summary.getId())
+                .playerName(summary.getName())
+                .playerType(summary.getType())
+                .positionCode(summary.getPosition())
                 .cost(summary.getCost())
                 .point(summary.getPoint())
                 .avgPoint(summary.getAvgPoint())

@@ -55,7 +55,7 @@ public class PlayerProfilePointDaoJdbc implements PlayerProfilePointDao {
     }
 
     @Override
-    public void upsertAll(List<PlayerProfile> profiles) {
+    public void insertAll(List<PlayerProfile> profiles) {
         if (profiles.isEmpty())
             return;
 
@@ -63,8 +63,6 @@ public class PlayerProfilePointDaoJdbc implements PlayerProfilePointDao {
                 insert into player_profile values (
                     :dateId,
                     :playerId,
-                    :teamCode,
-                    :pos,
                     :cost,
                     :point,
                     :avgPoint,
@@ -72,14 +70,26 @@ public class PlayerProfilePointDaoJdbc implements PlayerProfilePointDao {
                     :createdAt,
                     :updatedAt
                 )
-                on duplicate key update
-                    team_code = values(team_code),
-                    pos = values(pos),
-                    cost = values(cost),
-                    point = values(point),
-                    avg_point = values(avg_point),
-                    point_game_count = values(point_game_count),
-                    updated_at = values(updated_at)
+                """;
+
+        MapSqlParameterSource[] parameters = profiles.stream()
+                .map(this::toParameterSource)
+                .toArray(MapSqlParameterSource[]::new);
+
+        namedParameterJdbcTemplate.batchUpdate(sql, parameters);
+    }
+
+    @Override
+    public void updateCostAll(List<PlayerProfile> profiles) {
+        if (profiles.isEmpty())
+            return;
+
+        String sql = """
+                update player_profile
+                set cost = :cost,
+                    updated_at = :updatedAt
+                where date_id = :dateId
+                  and player_id = :playerId
                 """;
 
         MapSqlParameterSource[] parameters = profiles.stream()
@@ -93,8 +103,6 @@ public class PlayerProfilePointDaoJdbc implements PlayerProfilePointDao {
         return new MapSqlParameterSource()
                 .addValue("dateId", profile.getDateId())
                 .addValue("playerId", profile.getPlayerId())
-                .addValue("teamCode", profile.getTeamCode())
-                .addValue("pos", profile.getPos())
                 .addValue("cost", profile.getCost())
                 .addValue("point", profile.getPoint())
                 .addValue("avgPoint", profile.getAvgPoint())
@@ -110,8 +118,6 @@ public class PlayerProfilePointDaoJdbc implements PlayerProfilePointDao {
             return PlayerProfile.builder()
                     .dateId(rs.getInt("date_id"))
                     .playerId(rs.getLong("player_id"))
-                    .teamCode(rs.getString("team_code"))
-                    .pos(rs.getString("pos"))
                     .cost(rs.getInt("cost"))
                     .point(rs.getInt("point"))
                     .avgPoint(rs.getInt("avg_point"))

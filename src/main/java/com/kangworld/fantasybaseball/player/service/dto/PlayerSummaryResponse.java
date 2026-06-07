@@ -11,28 +11,26 @@ import lombok.Getter;
 @Builder
 public class PlayerSummaryResponse {
 
-    private long playerId;
-    private String playerName;
-    private PlayerType playerType;
-    private PlayerPosition positionCode;
+    private long id;
+    private String name;
+    private PlayerType type;
+    private PlayerPosition position;
     private int cost;
     private int point;
     private int avgPoint;
     private String teamCode;
-    private String pos;
     private String imgPath;
 
     public static PlayerSummaryResponse from(PlayerSummary summary) {
         return PlayerSummaryResponse.builder()
-                .playerId(summary.getPlayerId())
-                .playerName(summary.getPlayerName())
-                .playerType(summary.getPlayerType())
-                .positionCode(summary.getPositionCode())
+                .id(summary.getId())
+                .name(summary.getName())
+                .type(summary.getType())
+                .position(summary.getPosition())
                 .cost(summary.getCost())
                 .point(summary.getPoint())
                 .avgPoint(summary.getAvgPoint())
                 .teamCode(summary.getTeamCode())
-                .pos(summary.getPos())
                 .imgPath(summary.getImgPath())
                 .build();
     }

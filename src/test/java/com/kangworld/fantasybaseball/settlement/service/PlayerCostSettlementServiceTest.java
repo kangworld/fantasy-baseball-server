@@ -20,7 +20,11 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.kangworld.fantasybaseball.player.dao.PlayerDao;
 import com.kangworld.fantasybaseball.player.model.PlayerProfile;
+import com.kangworld.fantasybaseball.player.model.PlayerPosition;
+import com.kangworld.fantasybaseball.player.model.PlayerSummary;
+import com.kangworld.fantasybaseball.player.model.PlayerType;
 import com.kangworld.fantasybaseball.point.dao.PlayerDailyPointDao;
 import com.kangworld.fantasybaseball.point.dao.PlayerProfilePointDao;
 
@@ -32,6 +36,9 @@ class PlayerCostSettlementServiceTest {
 
     @Mock
     private PlayerProfilePointDao playerProfilePointDao;
+
+    @Mock
+    private PlayerDao playerDao;
 
     @InjectMocks
     private PlayerCostSettlementService playerCostSettlementService;
@@ -53,9 +60,12 @@ class PlayerCostSettlementServiceTest {
     void settle은_직전_15일_포인트로_투수와_타자를_분리해_cost를_계산한다() {
         // given
         LocalDate targetDate = LocalDate.of(2026, 5, 16);
-        List<PlayerProfile> profiles = Stream.concat(
-                LongStream.rangeClosed(1, 100).mapToObj(playerId -> profile(playerId, "P", 1)),
-                LongStream.rangeClosed(101, 200).mapToObj(playerId -> profile(playerId, "C", 1))
+        List<PlayerProfile> profiles = LongStream.rangeClosed(1, 200)
+                .mapToObj(playerId -> profile(playerId, 1))
+                .toList();
+        List<PlayerSummary> summaries = Stream.concat(
+                LongStream.rangeClosed(1, 100).mapToObj(playerId -> summary(playerId, PlayerType.PITCHER, PlayerPosition.P)),
+                LongStream.rangeClosed(101, 200).mapToObj(playerId -> summary(playerId, PlayerType.BATTER, PlayerPosition.C))
         ).toList();
         Set<Long> playerIds = profiles.stream()
                 .map(PlayerProfile::getPlayerId)
@@ -66,6 +76,7 @@ class PlayerCostSettlementServiceTest {
                         profile -> 1000 - (int) profile.getPlayerId()
                 ));
         given(playerProfilePointDao.findByDateId(20260516)).willReturn(profiles);
+        given(playerDao.findSummariesByPlayerIds(20260516, playerIds)).willReturn(summaries);
         given(playerDailyPointDao.findTotalPointByPlayerIdsBetweenDateIds(20260502, 20260516, playerIds))
                 .willReturn(pointByPlayerId);
 
@@ -74,7 +85,7 @@ class PlayerCostSettlementServiceTest {
 
         // then
         org.mockito.ArgumentCaptor<List<PlayerProfile>> profilesCaptor = org.mockito.ArgumentCaptor.forClass(List.class);
-        verify(playerProfilePointDao).upsertAll(profilesCaptor.capture());
+        verify(playerProfilePointDao).updateCostAll(profilesCaptor.capture());
         Map<Long, PlayerProfile> resultByPlayerId = profilesCaptor.getValue().stream()
                 .collect(Collectors.toMap(PlayerProfile::getPlayerId, Function.identity()));
 
@@ -88,11 +99,13 @@ class PlayerCostSettlementServiceTest {
     }
 
     @Test
-    void settle은_직전_15일_포인트가_없는_선수를_신규_선수_cost로_둔다() {
+    void settle은_직전_15일_포인트가_없는_선수를_최저_cost로_둔다() {
         // given
         LocalDate targetDate = LocalDate.of(2026, 6, 1);
-        List<PlayerProfile> profiles = List.of(profile(1L, "P", 1));
+        List<PlayerProfile> profiles = List.of(profile(1L, 1));
         given(playerProfilePointDao.findByDateId(20260601)).willReturn(profiles);
+        given(playerDao.findSummariesByPlayerIds(20260601, Set.of(1L)))
+                .willReturn(List.of(summary(1L, PlayerType.PITCHER, PlayerPosition.P)));
         given(playerDailyPointDao.findTotalPointByPlayerIdsBetweenDateIds(20260518, 20260601, Set.of(1L)))
                 .willReturn(Map.of());
 
@@ -101,21 +114,27 @@ class PlayerCostSettlementServiceTest {
 
         // then
         org.mockito.ArgumentCaptor<List<PlayerProfile>> profilesCaptor = org.mockito.ArgumentCaptor.forClass(List.class);
-        verify(playerProfilePointDao).upsertAll(profilesCaptor.capture());
+        verify(playerProfilePointDao).updateCostAll(profilesCaptor.capture());
         assertThat(profilesCaptor.getValue()).extracting(PlayerProfile::getCost)
-                .containsExactly(3);
+                .containsExactly(1);
     }
 
-    private PlayerProfile profile(long playerId, String pos, int cost) {
+    private PlayerProfile profile(long playerId, int cost) {
         return PlayerProfile.builder()
                 .dateId(20260516)
                 .playerId(playerId)
-                .teamCode("LG")
-                .pos(pos)
                 .cost(cost)
                 .point(0)
                 .avgPoint(0)
                 .pointGameCount(0)
+                .build();
+    }
+
+    private PlayerSummary summary(long playerId, PlayerType type, PlayerPosition position) {
+        return PlayerSummary.builder()
+                .id(playerId)
+                .type(type)
+                .position(position)
                 .build();
     }
 

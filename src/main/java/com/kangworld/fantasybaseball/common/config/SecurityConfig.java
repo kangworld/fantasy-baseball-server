@@ -1,5 +1,8 @@
 package com.kangworld.fantasybaseball.common.config;
 
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -9,21 +12,34 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.kangworld.fantasybaseball.auth.security.JwtAuthenticationFilter;
 import com.kangworld.fantasybaseball.common.api.ApiAuthenticationEntryPoint;
 
-import lombok.RequiredArgsConstructor;
-
 @Configuration
-@RequiredArgsConstructor
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final ApiAuthenticationEntryPoint apiAuthenticationEntryPoint;
+    private final List<String> allowedOrigins;
+
+    public SecurityConfig(
+            JwtAuthenticationFilter jwtAuthenticationFilter,
+            ApiAuthenticationEntryPoint apiAuthenticationEntryPoint,
+            @Value("#{'${security.cors.allowed-origins}'.split(',')}") List<String> allowedOrigins) {
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.apiAuthenticationEntryPoint = apiAuthenticationEntryPoint;
+        this.allowedOrigins = allowedOrigins;
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        // 로컬 Vue 개발 서버에서 API를 직접 호출할 수 있도록 CORS preflight를 허용한다.
+        http.cors(cors -> cors.configurationSource(corsConfigurationSource()));
+
         // csrf는 브라우저 폼 기반 애플리케이션이 아니라 API 서버 기준이라 비활성화.
         http.csrf(AbstractHttpConfigurer::disable);
 
@@ -67,6 +83,20 @@ public class SecurityConfig {
     public PasswordEncoder passwordEncoder() {
         // 회원가입 비밀번호는 BCrypt 해시로 저장.
         return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(allowedOrigins);
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowCredentials(false);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/api/**", configuration);
+
+        return source;
     }
 
 }

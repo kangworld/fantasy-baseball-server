@@ -22,6 +22,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import com.kangworld.fantasybaseball.common.time.FantasyTime;
 import com.kangworld.fantasybaseball.player.image.service.PlayerImageBatchService;
 import com.kangworld.fantasybaseball.settlement.model.SettlementStepName;
+import com.kangworld.fantasybaseball.settlement.service.PlayerBuildSettlementService;
 import com.kangworld.fantasybaseball.settlement.service.PlayerCostSettlementService;
 import com.kangworld.fantasybaseball.settlement.service.PlayerPointSettlementService;
 import com.kangworld.fantasybaseball.settlement.service.RankSettlementService;
@@ -33,6 +34,9 @@ class SettlementSchedulerTest {
 
     @Mock
     private PlayerPointSettlementService playerPointSettlementService;
+
+    @Mock
+    private PlayerBuildSettlementService playerBuildSettlementService;
 
     @Mock
     private PlayerCostSettlementService playerCostSettlementService;
@@ -67,6 +71,8 @@ class SettlementSchedulerTest {
         InOrder inOrder = inOrder(settlementExecutionRecorder);
         inOrder.verify(settlementExecutionRecorder).canStart(fantasyDate);
         inOrder.verify(settlementExecutionRecorder).start(fantasyDate);
+        inOrder.verify(settlementExecutionRecorder)
+                .runStep(eq(1L), eq(SettlementStepName.PLAYER_BUILD), any(Runnable.class));
         inOrder.verify(settlementExecutionRecorder)
                 .runStep(eq(1L), eq(SettlementStepName.PLAYER_POINT), any(Runnable.class));
         inOrder.verify(settlementExecutionRecorder)
@@ -107,6 +113,8 @@ class SettlementSchedulerTest {
         settlementScheduler.doDailySettlement();
 
         // then
+        verify(settlementExecutionRecorder)
+                .runStep(eq(1L), eq(SettlementStepName.PLAYER_BUILD), any(Runnable.class));
         verify(settlementExecutionRecorder)
                 .runStep(eq(1L), eq(SettlementStepName.PLAYER_COST), any(Runnable.class));
         verify(settlementExecutionRecorder)

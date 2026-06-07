@@ -11,8 +11,6 @@ public class PlayerProfile {
 
     private int dateId;
     private long playerId;
-    private String teamCode;
-    private String pos;
     private int cost;
     private int point;
     private int avgPoint;

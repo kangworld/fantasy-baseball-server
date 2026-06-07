@@ -11,6 +11,8 @@ public interface PlayerProfilePointDao {
 
     List<PlayerProfile> findByDateIds(Set<Integer> dateIds);
 
-    void upsertAll(List<PlayerProfile> profiles);
+    void insertAll(List<PlayerProfile> profiles);
+
+    void updateCostAll(List<PlayerProfile> profiles);
 
 }

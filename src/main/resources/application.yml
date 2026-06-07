@@ -37,6 +37,8 @@ management:
         include: health,info,prometheus
 
 security:
+  cors:
+    allowed-origins: http://localhost:5173
   jwt:
     secret: ${JWT_SECRET:fantasy-baseball-local-jwt-secret-key-2026}
     access-token-expiration-seconds: 3600

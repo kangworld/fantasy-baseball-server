@@ -1,6 +1,11 @@
 package com.kangworld.fantasybaseball.common.api;
 
-import org.springframework.core.annotation.AnnotatedElementUtils;
+import com.kangworld.fantasybaseball.abuse.exception.RateLimitExceededException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.annotation.MergedAnnotation;
+import org.springframework.core.annotation.MergedAnnotations;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
@@ -10,10 +15,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import com.kangworld.fantasybaseball.abuse.exception.RateLimitExceededException;
-
-import jakarta.validation.ConstraintViolationException;
-
+@Slf4j
 @RestControllerAdvice
 public class ApiExceptionHandler {
 
@@ -33,17 +35,24 @@ public class ApiExceptionHandler {
     }
 
     @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ApiResponse<Void>> handleRuntime(RuntimeException exception) {
+    public ResponseEntity<ApiResponse<Void>> handleRuntime(RuntimeException exception, HttpServletRequest request) {
         // 도메인 예외는 각 예외 클래스의 @ResponseStatus를 API 응답 상태로 사용한다.
-        ResponseStatus responseStatus = AnnotatedElementUtils.findMergedAnnotation(exception.getClass(), ResponseStatus.class);
-        if (responseStatus == null) {
+        MergedAnnotation<ResponseStatus> responseStatus = MergedAnnotations.from(exception.getClass())
+                .get(ResponseStatus.class);
+        if (!responseStatus.isPresent()) {
+            log.error("Unhandled API exception. method={}, uri={}", request.getMethod(), request.getRequestURI(), exception);
+
             return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "서버 오류가 발생했습니다.");
         }
 
-        HttpStatus status = responseStatus.code();
-        String message = StringUtils.hasText(responseStatus.reason())
-                ? responseStatus.reason()
-                : exception.getMessage();
+        HttpStatus status = responseStatus.synthesize().code();
+        String reason = responseStatus.synthesize().reason();
+        String message = StringUtils.hasText(reason) ? reason : exception.getMessage();
+
+        String risk = status.is5xxServerError() ? "HIGH" : "LOW";
+        log.error("[{}] Handled API exception. method={}, uri={}, status={}, message={}",
+                risk, request.getMethod(), request.getRequestURI(), status.value(), message, exception);
+
         return buildResponse(status, message);
     }
 

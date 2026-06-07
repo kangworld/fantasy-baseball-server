@@ -3,9 +3,12 @@ package com.kangworld.fantasybaseball.settlement.service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -14,8 +17,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.kangworld.fantasybaseball.common.date.DateIds;
 import com.kangworld.fantasybaseball.common.time.FantasyTime;
+import com.kangworld.fantasybaseball.external.kbo.model.KboBatterRecord;
 import com.kangworld.fantasybaseball.external.kbo.model.KboGameRecord;
 import com.kangworld.fantasybaseball.external.kbo.model.KboGameStatus;
+import com.kangworld.fantasybaseball.external.kbo.model.KboPitcherRecord;
 import com.kangworld.fantasybaseball.external.kbo.model.KboScheduleGame;
 import com.kangworld.fantasybaseball.external.kbo.service.KboGameRecordFetchService;
 import com.kangworld.fantasybaseball.external.kbo.service.KboScheduleFetchService;
@@ -31,10 +36,14 @@ import com.kangworld.fantasybaseball.point.service.PlayerGameRecordMapper;
 import com.kangworld.fantasybaseball.point.service.PointCalculator;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PlayerPointSettlementService {
+
+    private static final int NEW_PLAYER_COST = 3;
 
     private final KboScheduleFetchService scheduleFetchService;
     private final KboGameRecordFetchService gameRecordFetchService;
@@ -71,7 +80,7 @@ public class PlayerPointSettlementService {
         List<PlayerDailyPoint> dailyPoints = calculateDailyPoints(dateId, gameRecords, now);
         playerDailyPointDao.upsertAll(dailyPoints);
 
-        updateProfiles(targetDate, dailyPoints, now);
+        updateProfiles(targetDate, gameRecords, dailyPoints, now);
     }
 
     private List<PlayerDailyPoint> calculateDailyPoints(
@@ -123,9 +132,10 @@ public class PlayerPointSettlementService {
 
     private void updateProfiles(
             LocalDate targetDate,
+            List<KboGameRecord> gameRecords,
             List<PlayerDailyPoint> dailyPoints,
             LocalDateTime now) {
-        // 전날 프로필 이월 후 오늘 계산된 선수만 누적값을 증가시킨다.
+        // 전날 선수풀을 유지하되, 당일 기록에 처음 등장한 선수도 신규 profile로 편입한다.
         int dateId = DateIds.from(targetDate);
         int previousDateId = DateIds.from(targetDate.minusDays(1));
 
@@ -135,41 +145,85 @@ public class PlayerPointSettlementService {
                         PlayerDailyPoint::getPlayerId,
                         Collectors.summingInt(PlayerDailyPoint::getPoint)
                 ));
-        Set<Long> appearedPlayerIds = dailyPoints.stream()
-                .map(PlayerDailyPoint::getPlayerId)
-                .collect(Collectors.toSet());
+        Map<Long, PlayerProfile> previousProfileByPlayerId = playerProfilePointDao.findByDateId(previousDateId)
+                .stream()
+                .collect(Collectors.toMap(PlayerProfile::getPlayerId, Function.identity()));
+        Set<Long> appearedPlayerIds = getAppearedPlayerIds(gameRecords);
 
-        List<PlayerProfile> previousProfiles = playerProfilePointDao.findByDateId(previousDateId);
-        List<PlayerProfile> profiles = previousProfiles.stream()
-                .map(previous -> toProfile(dateId, previous, dailyPointByPlayerId.getOrDefault(previous.getPlayerId(), 0),
-                        appearedPlayerIds.contains(previous.getPlayerId()), now))
+        Set<Long> profileTargetPlayerIds = new HashSet<>(previousProfileByPlayerId.keySet());
+        profileTargetPlayerIds.addAll(appearedPlayerIds);
+
+        List<PlayerProfile> profiles = profileTargetPlayerIds.stream()
+                .sorted(Comparator.naturalOrder())
+                .map(playerId -> toProfile(
+                        dateId,
+                        playerId,
+                        previousProfileByPlayerId.get(playerId),
+                        appearedPlayerIds.contains(playerId),
+                        dailyPointByPlayerId.getOrDefault(playerId, 0),
+                        now))
                 .toList();
 
-        playerProfilePointDao.upsertAll(profiles);
+        playerProfilePointDao.insertAll(profiles);
+    }
+
+    private Set<Long> getAppearedPlayerIds(List<KboGameRecord> gameRecords) {
+        return gameRecords.stream()
+                .flatMap(this::toAppearedPlayerIds)
+                .collect(Collectors.toSet());
+    }
+
+    private Stream<Long> toAppearedPlayerIds(KboGameRecord gameRecord) {
+        List<KboBatterRecord> batterRecords =
+                gameRecord.getBatterRecords() == null ? List.of() : gameRecord.getBatterRecords();
+        List<KboPitcherRecord> pitcherRecords =
+                gameRecord.getPitcherRecords() == null ? List.of() : gameRecord.getPitcherRecords();
+
+        Stream<Long> batters = batterRecords.stream()
+                .map(record -> parsePlayerId(record.getPlayerCode(), record.getName()));
+        Stream<Long> pitchers = pitcherRecords.stream()
+                .map(record -> parsePlayerId(record.getPlayerCode(), record.getName()));
+
+        return Stream.concat(batters, pitchers);
     }
 
     private PlayerProfile toProfile(
             int dateId,
+            long playerId,
             PlayerProfile previous,
-            int dailyPoint,
             boolean appeared,
+            int dailyPoint,
             LocalDateTime now) {
-        int cumulativePoint = previous.getPoint() + dailyPoint;
+        int previousPoint = previous == null ? 0 : previous.getPoint();
+        int cumulativePoint = previousPoint + dailyPoint;
         // 실제 계산 대상 등장 횟수를 평균 분모로 사용한다.
-        int pointGameCount = previous.getPointGameCount() + (appeared ? 1 : 0);
+        int previousPointGameCount = previous == null ? 0 : previous.getPointGameCount();
+        int pointGameCount = previousPointGameCount + (appeared ? 1 : 0);
 
         return PlayerProfile.builder()
                 .dateId(dateId)
-                .playerId(previous.getPlayerId())
-                .teamCode(previous.getTeamCode())
-                .pos(previous.getPos())
-                .cost(previous.getCost())
+                .playerId(playerId)
+                .cost(previous == null ? NEW_PLAYER_COST : previous.getCost())
                 .point(cumulativePoint)
-                .avgPoint(cumulativePoint / Math.max(1, pointGameCount))
+                .avgPoint(pointGameCount == 0 ? 0 : cumulativePoint / pointGameCount)
                 .pointGameCount(pointGameCount)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
+    }
+
+    private long parsePlayerId(String playerCode, String playerName) {
+        if (playerCode == null || playerCode.isBlank()) {
+            log.warn("KBO record player code is empty. playerName={}", playerName);
+            throw new IllegalStateException("KBO 선수 ID가 비어 있습니다.");
+        }
+
+        try {
+            return Long.parseLong(playerCode);
+        } catch (NumberFormatException exception) {
+            log.warn("KBO record player code is invalid. playerCode={}, playerName={}", playerCode, playerName, exception);
+            throw new IllegalStateException("KBO 선수 ID 형식이 올바르지 않습니다.", exception);
+        }
     }
 
     private record DailyPointKey(String gameId, long playerId) {

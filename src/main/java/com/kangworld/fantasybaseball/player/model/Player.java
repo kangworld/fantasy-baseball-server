@@ -9,11 +9,13 @@ import lombok.Getter;
 @Builder
 public class Player {
 
-    private long playerId;
-    private String playerName;
-    private PlayerType playerType;
-    private PlayerPosition positionCode;
+    private long id;
+    private String name;
+    private PlayerType type;
+    private PlayerPosition position;
+    private String teamCode;
     private PlayerStatus status;
+    private LocalDateTime teamUpdatedAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

@@ -42,9 +42,9 @@ class PlayerDaoJdbcTest {
         int yesterdayDateId = DateIds.from(LocalDate.now().minusDays(1));
         insertPlayer(76290, "김현수", "BATTER", "DH", "ACTIVE");
         insertPlayer(12345, "삭제선수", "BATTER", "LF", "INACTIVE");
-        insertProfile(todayDateId, 76290, "LG", "DH", 3, 12, 8);
-        insertProfile(yesterdayDateId, 76290, "LG", "DH", 3, 99, 20);
-        insertProfile(todayDateId, 12345, "LG", "LF", 1, 30, 10);
+        insertProfile(todayDateId, 76290, 3, 12, 8);
+        insertProfile(yesterdayDateId, 76290, 3, 99, 20);
+        insertProfile(todayDateId, 12345, 1, 30, 10);
         insertPlayerImage(76290, "players/2026/76290.jpg");
 
         PlayerSearchCondition condition = PlayerSearchCondition.builder()
@@ -56,7 +56,7 @@ class PlayerDaoJdbcTest {
 
         // then
         assertThat(summaries).hasSize(1);
-        assertThat(summaries.get(0).getPlayerId()).isEqualTo(76290);
+        assertThat(summaries.get(0).getId()).isEqualTo(76290);
         assertThat(summaries.get(0).getPoint()).isEqualTo(12);
         assertThat(summaries.get(0).getImgPath()).isEqualTo("players/2026/76290.jpg");
     }
@@ -68,9 +68,9 @@ class PlayerDaoJdbcTest {
         insertPlayer(76290, "김현수", "BATTER", "DH", "ACTIVE");
         insertPlayer(78548, "장성우", "BATTER", "C", "ACTIVE");
         insertPlayer(63492, "김광현", "PITCHER", "P", "ACTIVE");
-        insertProfile(todayDateId, 76290, "LG", "DH", 3, 12, 8);
-        insertProfile(todayDateId, 78548, "KT", "C", 2, 20, 7);
-        insertProfile(todayDateId, 63492, "SSG", "P", 4, 25, 11);
+        insertProfile(todayDateId, 76290, 3, 12, 8);
+        insertProfile(todayDateId, 78548, 2, 20, 7);
+        insertProfile(todayDateId, 63492, 4, 25, 11);
 
         PlayerSearchCondition condition = PlayerSearchCondition.builder()
                 .dateId(todayDateId)
@@ -83,7 +83,7 @@ class PlayerDaoJdbcTest {
         List<PlayerSummary> summaries = playerDao.findSummaries(condition);
 
         // then
-        assertThat(summaries).extracting(PlayerSummary::getPlayerId)
+        assertThat(summaries).extracting(PlayerSummary::getId)
                 .containsExactly(76290L);
     }
 
@@ -91,18 +91,18 @@ class PlayerDaoJdbcTest {
         LocalDateTime now = LocalDateTime.of(2026, 4, 28, 12, 0);
 
         jdbcTemplate.update("""
-                insert into player (player_id, player_name, player_type, position_code, status, created_at, updated_at)
-                values (?, ?, ?, ?, ?, ?, ?)
-                """, playerId, name, type, positionCode, status, now, now);
+                insert into player (player_id, player_name, player_type, position, team_code, status, team_updated_at, created_at, updated_at)
+                values (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, playerId, name, type, positionCode, "LG", status, now, now, now);
     }
 
-    private void insertProfile(int dateId, long playerId, String teamCode, String pos, int cost, int point, int avgPoint) {
+    private void insertProfile(int dateId, long playerId, int cost, int point, int avgPoint) {
         LocalDateTime now = LocalDateTime.of(2026, 4, 28, 12, 0);
 
         jdbcTemplate.update("""
-                insert into player_profile (date_id, player_id, team_code, pos, cost, point, avg_point, created_at, updated_at)
-                values (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, dateId, playerId, teamCode, pos, cost, point, avgPoint, now, now);
+                insert into player_profile (date_id, player_id, cost, point, avg_point, created_at, updated_at)
+                values (?, ?, ?, ?, ?, ?, ?)
+                """, dateId, playerId, cost, point, avgPoint, now, now);
     }
 
     private void insertPlayerImage(long playerId, String imgPath) {

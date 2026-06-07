@@ -403,15 +403,15 @@ class RosterControllerTest {
 
         IntStream.range(0, playerIds.size()).forEach(index -> {
             Long playerId = playerIds.get(index);
-            jdbcTemplate.update("""
-                    insert into player (player_id, player_name, player_type, position_code, status, created_at, updated_at)
-                    values (?, ?, ?, ?, ?, ?, ?)
-                    """, playerId, "선수" + playerId, types[index], positions[index], "ACTIVE", now, now);
             String teamCode = index == 0 ? "LG" : "KT";
             jdbcTemplate.update("""
-                    insert into player_profile (date_id, player_id, team_code, pos, cost, point, avg_point, created_at, updated_at)
+                    insert into player (player_id, player_name, player_type, position, team_code, status, team_updated_at, created_at, updated_at)
                     values (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """, dateId, playerId, teamCode, positions[index], 1, 0, 0, now, now);
+                    """, playerId, "선수" + playerId, types[index], positions[index], teamCode, "ACTIVE", now, now, now);
+            jdbcTemplate.update("""
+                    insert into player_profile (date_id, player_id, cost, point, avg_point, created_at, updated_at)
+                    values (?, ?, ?, ?, ?, ?, ?)
+                    """, dateId, playerId, 1, 0, 0, now, now);
         });
     }
 

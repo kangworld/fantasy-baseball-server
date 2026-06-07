@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import com.kangworld.fantasybaseball.common.time.FantasyTime;
 import com.kangworld.fantasybaseball.player.image.service.PlayerImageBatchService;
 import com.kangworld.fantasybaseball.settlement.model.SettlementStepName;
+import com.kangworld.fantasybaseball.settlement.service.PlayerBuildSettlementService;
 import com.kangworld.fantasybaseball.settlement.service.PlayerCostSettlementService;
 import com.kangworld.fantasybaseball.settlement.service.PlayerPointSettlementService;
 import com.kangworld.fantasybaseball.settlement.service.RankSettlementService;
@@ -23,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 public class SettlementScheduler {
 
     private final PlayerPointSettlementService playerPointSettlementService;
+    private final PlayerBuildSettlementService playerBuildSettlementService;
     private final PlayerCostSettlementService playerCostSettlementService;
     private final RankSettlementService rankSettlementService;
     private final SettlementExecutionRecorder settlementExecutionRecorder;
@@ -38,6 +40,11 @@ public class SettlementScheduler {
             return;
 
         long settlementExecutionId = settlementExecutionRecorder.start(targetDate);
+        settlementExecutionRecorder.runStep(
+                settlementExecutionId,
+                SettlementStepName.PLAYER_BUILD,
+                () -> playerBuildSettlementService.settle(targetDate)
+        );
         settlementExecutionRecorder.runStep(
                 settlementExecutionId,
                 SettlementStepName.PLAYER_POINT,

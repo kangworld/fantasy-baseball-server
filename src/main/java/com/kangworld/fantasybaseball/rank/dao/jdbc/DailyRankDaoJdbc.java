@@ -34,16 +34,7 @@ public class DailyRankDaoJdbc implements DailyRankDao {
             return;
 
         String sql = """
-                insert into daily_rank (
-                    date_id,
-                    rank_no,
-                    member_id,
-                    point,
-                    display_rank_no,
-                    previous_rank_no,
-                    created_at,
-                    updated_at
-                ) values (
+                insert into daily_rank values (
                     :dateId,
                     :rankNo,
                     :memberId,

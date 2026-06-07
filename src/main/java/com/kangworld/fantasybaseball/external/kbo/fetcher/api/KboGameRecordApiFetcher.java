@@ -21,7 +21,11 @@ import com.kangworld.fantasybaseball.external.kbo.model.KboGameRecord;
 import com.kangworld.fantasybaseball.external.kbo.model.KboGameStatus;
 import com.kangworld.fantasybaseball.external.kbo.model.KboGameStatusMapper;
 import com.kangworld.fantasybaseball.external.kbo.model.KboPitcherRecord;
+import com.kangworld.fantasybaseball.player.model.PlayerPosition;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Component
 public class KboGameRecordApiFetcher implements KboGameRecordFetcher {
 
@@ -45,7 +49,9 @@ public class KboGameRecordApiFetcher implements KboGameRecordFetcher {
                 .retrieve()
                 .body(GameRecordResponse.class);
 
-        if (response == null || response.result == null || response.result.recordData == null) {
+        if (response.result == null || response.result.recordData == null) {
+            log.warn("KBO game record data is empty. gameId={}", gameId);
+
             return KboGameRecord.builder()
                     .gameId(gameId)
                     .status(KboGameStatus.UNKNOWN)
@@ -56,24 +62,45 @@ public class KboGameRecordApiFetcher implements KboGameRecordFetcher {
         }
 
         RecordDataResponse recordData = response.result.recordData;
-        // 홈/원정 박스스코어 병합
-        List<BatterRecordResponse> batters = merge(recordData.battersBoxscore.away, recordData.battersBoxscore.home);
-        List<PitcherRecordResponse> pitchers = merge(recordData.pitchersBoxscore.away, recordData.pitchersBoxscore.home);
+        if (recordData.battersBoxscore == null)
+            log.warn("KBO batter boxscore is empty. gameId={}", gameId);
+        if (recordData.pitchersBoxscore == null)
+            log.warn("KBO pitcher boxscore is empty. gameId={}", gameId);
+
+        // 홈/원정 병합 전에 팀 코드를 붙여야 신규 선수 프로필 생성 시 team_code를 보존할 수 있다.
+        List<KboBatterRecord> batters = new ArrayList<>();
+        batters.addAll(toBatterRecords(recordData.battersBoxscore == null ? List.of() : recordData.battersBoxscore.away, recordData.gameInfo.aCode));
+        batters.addAll(toBatterRecords(recordData.battersBoxscore == null ? List.of() : recordData.battersBoxscore.home, recordData.gameInfo.hCode));
+
+        List<KboPitcherRecord> pitchers = new ArrayList<>();
+        pitchers.addAll(toPitcherRecords(recordData.pitchersBoxscore == null ? List.of() : recordData.pitchersBoxscore.away, recordData.gameInfo.aCode));
+        pitchers.addAll(toPitcherRecords(recordData.pitchersBoxscore == null ? List.of() : recordData.pitchersBoxscore.home, recordData.gameInfo.hCode));
 
         return KboGameRecord.builder()
                 .gameId(recordData.gameInfo.gameId)
                 .status(gameStatusMapper.map(recordData.gameInfo.statusCode, false, false))
-                .batterRecords(batters.stream().map(this::toBatterRecord).toList())
-                .pitcherRecords(pitchers.stream().map(this::toPitcherRecord).toList())
+                .batterRecords(List.copyOf(batters))
+                .pitcherRecords(List.copyOf(pitchers))
                 .etcRecords(toEtcRecords(recordData.etcRecords))
                 .build();
     }
 
-    private KboBatterRecord toBatterRecord(BatterRecordResponse batter) {
+    private List<KboBatterRecord> toBatterRecords(List<BatterRecordResponse> records, String teamCode) {
+        if (records == null)
+            return List.of();
+
+        return records.stream()
+                .map(record -> toBatterRecord(record, teamCode))
+                .toList();
+    }
+
+    private KboBatterRecord toBatterRecord(BatterRecordResponse batter, String teamCode) {
         return KboBatterRecord.builder()
                 .playerCode(batter.playerCode)
                 .name(batter.name)
+                .teamCode(teamCode)
                 .pos(batter.pos)
+                .position(toPlayerPosition(batter.pos))
                 .ab(batter.ab)
                 .hit(batter.hit)
                 .rbi(batter.rbi)
@@ -86,10 +113,44 @@ public class KboGameRecordApiFetcher implements KboGameRecordFetcher {
                 .build();
     }
 
-    private KboPitcherRecord toPitcherRecord(PitcherRecordResponse pitcher) {
+    private PlayerPosition toPlayerPosition(String value) {
+        if (value == null || value.isBlank())
+            return PlayerPosition.DH;
+
+        // 네이버 record의 pos는 "주중"처럼 교체 역할과 최종 수비 위치가 붙을 수 있어 마지막 글자를 기준으로 해석한다.
+        String trimmed = value.trim();
+        String last = trimmed.substring(trimmed.length() - 1);
+
+        return switch (last) {
+            case "투" -> PlayerPosition.P;
+            case "포" -> PlayerPosition.C;
+            case "一" -> PlayerPosition.B1;
+            case "二" -> PlayerPosition.B2;
+            case "三" -> PlayerPosition.B3;
+            case "유" -> PlayerPosition.SS;
+            case "좌" -> PlayerPosition.LF;
+            case "중" -> PlayerPosition.CF;
+            case "우" -> PlayerPosition.RF;
+            case "지" -> PlayerPosition.DH;
+            default -> PlayerPosition.DH;
+        };
+    }
+
+    private List<KboPitcherRecord> toPitcherRecords(List<PitcherRecordResponse> records, String teamCode) {
+        if (records == null)
+            return List.of();
+
+        return records.stream()
+                .map(record -> toPitcherRecord(record, teamCode))
+                .toList();
+    }
+
+    private KboPitcherRecord toPitcherRecord(PitcherRecordResponse pitcher, String teamCode) {
         return KboPitcherRecord.builder()
                 .playerCode(pitcher.playerCode)
                 .name(pitcher.name)
+                .teamCode(teamCode)
+                .position(PlayerPosition.P)
                 .inn(pitcher.inn)
                 .hit(pitcher.hit)
                 .r(pitcher.r)
@@ -116,21 +177,6 @@ public class KboGameRecordApiFetcher implements KboGameRecordFetcher {
                 .toList();
     }
 
-    private <T> List<T> merge(List<T> away, List<T> home) {
-        // 빈 홈/원정 응답 흡수
-        List<T> merged = new ArrayList<>();
-
-        if (away != null) {
-            merged.addAll(away);
-        }
-
-        if (home != null) {
-            merged.addAll(home);
-        }
-
-        return List.copyOf(merged);
-    }
-
     @JsonIgnoreProperties(ignoreUnknown = true)
     private static class GameRecordResponse {
         private GameRecordResult result;
@@ -153,6 +199,8 @@ public class KboGameRecordApiFetcher implements KboGameRecordFetcher {
     private static class GameInfoResponse {
         private String gameId;
         private String statusCode;
+        private String aCode;
+        private String hCode;
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -210,7 +258,6 @@ public class KboGameRecordApiFetcher implements KboGameRecordFetcher {
         private String name;
         private String inn;
         private int hit;
-        @JsonProperty("r")
         private int r;
         private int er;
         private int bb;

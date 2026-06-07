@@ -77,15 +77,14 @@ class PlayerControllerTest {
                         .param("keyword", "김"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
-                .andExpect(jsonPath("$.data[0].playerId").value(76290))
-                .andExpect(jsonPath("$.data[0].playerName").value("김현수"))
-                .andExpect(jsonPath("$.data[0].playerType").value("BATTER"))
-                .andExpect(jsonPath("$.data[0].positionCode").value("DH"))
+                .andExpect(jsonPath("$.data[0].id").value(76290))
+                .andExpect(jsonPath("$.data[0].name").value("김현수"))
+                .andExpect(jsonPath("$.data[0].type").value("BATTER"))
+                .andExpect(jsonPath("$.data[0].position").value("DH"))
                 .andExpect(jsonPath("$.data[0].cost").value(3))
                 .andExpect(jsonPath("$.data[0].point").value(12))
                 .andExpect(jsonPath("$.data[0].avgPoint").value(8))
-                .andExpect(jsonPath("$.data[0].teamCode").value("LG"))
-                .andExpect(jsonPath("$.data[0].pos").value("DH"));
+                .andExpect(jsonPath("$.data[0].teamCode").value("LG"));
     }
 
     private void insertPlayerAndProfile() {
@@ -93,14 +92,14 @@ class PlayerControllerTest {
         int dateId = DateIds.from(TODAY);
 
         jdbcTemplate.update("""
-                insert into player (player_id, player_name, player_type, position_code, status, created_at, updated_at)
-                values (?, ?, ?, ?, ?, ?, ?)
-                """, 76290L, "김현수", "BATTER", "DH", "ACTIVE", now, now);
+                insert into player (player_id, player_name, player_type, position, team_code, status, team_updated_at, created_at, updated_at)
+                values (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, 76290L, "김현수", "BATTER", "DH", "LG", "ACTIVE", now, now, now);
 
         jdbcTemplate.update("""
-                insert into player_profile (date_id, player_id, team_code, pos, cost, point, avg_point, created_at, updated_at)
-                values (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, dateId, 76290L, "LG", "DH", 3, 12, 8, now, now);
+                insert into player_profile (date_id, player_id, cost, point, avg_point, created_at, updated_at)
+                values (?, ?, ?, ?, ?, ?, ?)
+                """, dateId, 76290L, 3, 12, 8, now, now);
     }
 
 }

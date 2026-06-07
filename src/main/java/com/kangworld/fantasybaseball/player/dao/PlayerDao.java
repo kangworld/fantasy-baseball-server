@@ -5,8 +5,11 @@ import java.util.Set;
 
 import com.kangworld.fantasybaseball.player.model.PlayerSearchCondition;
 import com.kangworld.fantasybaseball.player.model.PlayerSummary;
+import com.kangworld.fantasybaseball.player.model.Player;
 
 public interface PlayerDao {
+
+    void upsertAll(List<Player> players);
 
     List<PlayerSummary> findSummaries(PlayerSearchCondition condition);
 

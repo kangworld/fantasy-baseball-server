@@ -2,6 +2,8 @@ package com.kangworld.fantasybaseball.external.kbo.model;
 
 import java.util.List;
 
+import com.kangworld.fantasybaseball.player.model.PlayerPosition;
+
 import lombok.Builder;
 import lombok.Getter;
 
@@ -11,7 +13,9 @@ public class KboBatterRecord {
 
     private String playerCode;
     private String name;
+    private String teamCode;
     private String pos;
+    private PlayerPosition position;
     private int ab;
     private int hit;
     private int rbi;

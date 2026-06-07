@@ -17,12 +17,15 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.kangworld.fantasybaseball.common.time.FantasyTime;
+import com.kangworld.fantasybaseball.external.kbo.model.KboBatterRecord;
 import com.kangworld.fantasybaseball.external.kbo.model.KboGameRecord;
 import com.kangworld.fantasybaseball.external.kbo.model.KboGameStatus;
+import com.kangworld.fantasybaseball.external.kbo.model.KboPitcherRecord;
 import com.kangworld.fantasybaseball.external.kbo.model.KboScheduleGame;
 import com.kangworld.fantasybaseball.external.kbo.service.KboGameRecordFetchService;
 import com.kangworld.fantasybaseball.external.kbo.service.KboScheduleFetchService;
 import com.kangworld.fantasybaseball.player.model.PlayerProfile;
+import com.kangworld.fantasybaseball.player.model.PlayerPosition;
 import com.kangworld.fantasybaseball.point.dao.PlayerDailyPointDao;
 import com.kangworld.fantasybaseball.point.dao.PlayerProfilePointDao;
 import com.kangworld.fantasybaseball.point.dao.PointRuleDao;
@@ -107,7 +110,7 @@ class PlayerPointSettlementServiceTest {
         ArgumentCaptor<List<PlayerDailyPoint>> dailyPointsCaptor = ArgumentCaptor.forClass(List.class);
         ArgumentCaptor<List<PlayerProfile>> profilesCaptor = ArgumentCaptor.forClass(List.class);
         verify(playerDailyPointDao).upsertAll(dailyPointsCaptor.capture());
-        verify(playerProfilePointDao).upsertAll(profilesCaptor.capture());
+        verify(playerProfilePointDao).insertAll(profilesCaptor.capture());
 
         assertThat(dailyPointsCaptor.getValue()).extracting(PlayerDailyPoint::getDateId)
                 .containsExactly(20260511);
@@ -138,6 +141,18 @@ class PlayerPointSettlementServiceTest {
     private KboGameRecord gameRecord(String gameId) {
         return KboGameRecord.builder()
                 .gameId(gameId)
+                .batterRecords(List.of(KboBatterRecord.builder()
+                        .playerCode("100")
+                        .name("타자")
+                        .teamCode("LG")
+                        .position(PlayerPosition.DH)
+                        .build()))
+                .pitcherRecords(List.of(KboPitcherRecord.builder()
+                        .playerCode("100")
+                        .name("투수")
+                        .teamCode("LG")
+                        .position(PlayerPosition.P)
+                        .build()))
                 .build();
     }
 
@@ -145,8 +160,6 @@ class PlayerPointSettlementServiceTest {
         return PlayerProfile.builder()
                 .dateId(20260510)
                 .playerId(playerId)
-                .teamCode("LG")
-                .pos("P")
                 .cost(10)
                 .point(point)
                 .avgPoint(point / pointGameCount)

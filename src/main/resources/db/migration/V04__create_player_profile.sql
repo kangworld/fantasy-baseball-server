@@ -1,8 +1,6 @@
 ﻿create table if not exists player_profile (
     date_id int not null,
     player_id bigint not null,
-    team_code varchar(20) not null,
-    pos varchar(20) not null,
     cost int not null,
     point int not null,
     avg_point int not null,

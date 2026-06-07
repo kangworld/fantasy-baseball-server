@@ -21,6 +21,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import com.kangworld.fantasybaseball.common.time.FantasyTime;
 import com.kangworld.fantasybaseball.player.image.service.PlayerImageBatchService;
 import com.kangworld.fantasybaseball.settlement.model.SettlementStepName;
+import com.kangworld.fantasybaseball.settlement.service.PlayerBuildSettlementService;
 import com.kangworld.fantasybaseball.settlement.service.PlayerCostSettlementService;
 import com.kangworld.fantasybaseball.settlement.service.PlayerPointSettlementService;
 import com.kangworld.fantasybaseball.settlement.service.RankSettlementService;
@@ -38,6 +39,9 @@ class SettlementSchedulerSchedulingTest {
 
     @MockitoBean
     private PlayerPointSettlementService playerPointSettlementService;
+
+    @MockitoBean
+    private PlayerBuildSettlementService playerBuildSettlementService;
 
     @MockitoBean
     private PlayerCostSettlementService playerCostSettlementService;
@@ -72,6 +76,8 @@ class SettlementSchedulerSchedulingTest {
                 .atMost(3, TimeUnit.SECONDS)
                 .untilAsserted(() -> {
                     verify(settlementExecutionRecorder, atLeastOnce())
+                            .runStep(eq(1L), eq(SettlementStepName.PLAYER_BUILD), any(Runnable.class));
+                    verify(settlementExecutionRecorder, atLeastOnce())
                             .runStep(eq(1L), eq(SettlementStepName.PLAYER_POINT), any(Runnable.class));
                     verify(settlementExecutionRecorder, atLeastOnce())
                             .runStep(eq(1L), eq(SettlementStepName.PLAYER_COST), any(Runnable.class));
@@ -93,6 +99,7 @@ class SettlementSchedulerSchedulingTest {
         // when
         new SettlementScheduler(
                 playerPointSettlementService,
+                playerBuildSettlementService,
                 playerCostSettlementService,
                 rankSettlementService,
                 settlementExecutionRecorder,
