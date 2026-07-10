@@ -4,19 +4,13 @@ import java.time.Duration;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-import lombok.Getter;
-import lombok.Setter;
-
-@Getter
-@Setter
 @ConfigurationProperties(prefix = "external.kbo")
-public class KboApiProperties {
-
-    private String baseUrl;
-    private String imageBaseUrl;
-    private Duration scheduleCacheTtl;
-    private Duration recordCacheTtl;
-    private Duration liveGameStateCacheTtl;
-    private Duration teamRankCacheTtl;
-
+public record KboApiProperties(
+        String baseUrl,
+        String imageBaseUrl,
+        Duration scheduleCacheTtl,
+        Duration recordCacheTtl,
+        Duration liveGameStateCacheTtl,
+        Duration teamRankCacheTtl
+) {
 }

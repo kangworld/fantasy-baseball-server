@@ -18,9 +18,7 @@ public class AppConfigController {
     @GetMapping
     public ApiResponse<AppConfigResponse> find() {
         // 웹 클라이언트는 이 기준 URL과 각 API의 imgPath를 조합해서 공개 asset을 요청한다.
-        return ApiResponse.ok(AppConfigResponse.builder()
-                .assetPublicBaseUrl(assetStorageProperties.getPublicBaseUrl())
-                .build());
+        return ApiResponse.ok(new AppConfigResponse(assetStorageProperties.publicBaseUrl()));
     }
 
 }

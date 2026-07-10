@@ -15,7 +15,7 @@ public class AssetStorageConfig {
     public S3Client assetS3Client(AssetStorageProperties properties) {
         // AWS SDK 기본 credential chain을 사용한다. 로컬은 AWS_PROFILE, 운영은 IAM Role을 통해 인증한다.
         return S3Client.builder()
-                .region(Region.of(properties.getRegion()))
+                .region(Region.of(properties.region()))
                 .build();
     }
 

@@ -23,7 +23,7 @@ public class KboScheduleFetchService {
         this.scheduleFetcher = scheduleFetcher;
         this.scheduleCache = Caffeine.newBuilder()
                 // 일정은 자주 바뀌지 않아서 조회 시점에 오래된 값만 새로고침하는 쪽으로 맞춘다.
-                .refreshAfterWrite(properties.getScheduleCacheTtl().toMillis(), TimeUnit.MILLISECONDS)
+                .refreshAfterWrite(properties.scheduleCacheTtl().toMillis(), TimeUnit.MILLISECONDS)
                 // 날짜 캐시는 최근 조회 범위만 유지해도 충분해서 상한을 작게 둔다.
                 .maximumSize(10)
                 .ticker(ticker)

@@ -29,7 +29,7 @@ public class S3AssetStorage implements AssetStorage {
         try {
             String objectKey = buildObjectKey(assetPath);
             ResponseBytes<GetObjectResponse> response = s3Client.getObjectAsBytes(GetObjectRequest.builder()
-                    .bucket(properties.getBucket())
+                    .bucket(properties.bucket())
                     .key(objectKey)
                     .build());
 
@@ -43,18 +43,18 @@ public class S3AssetStorage implements AssetStorage {
     public void upload(String assetPath, AssetFile assetFile) {
         String objectKey = buildObjectKey(assetPath);
         PutObjectRequest request = PutObjectRequest.builder()
-                .bucket(properties.getBucket())
+                .bucket(properties.bucket())
                 .key(objectKey)
-                .contentType(assetFile.getContentType())
+                .contentType(assetFile.contentType())
                 // S3는 object metadata에 Cache-Control을 저장하고, 이후 asset 응답 헤더로 그대로 내려준다.
-                .cacheControl(properties.getCacheControl())
+                .cacheControl(properties.cacheControl())
                 .build();
 
-        s3Client.putObject(request, RequestBody.fromBytes(assetFile.getBytes()));
+        s3Client.putObject(request, RequestBody.fromBytes(assetFile.bytes()));
     }
 
     private String buildObjectKey(String assetPath) {
-        String normalizedPrefix = properties.getPathPrefix().replaceAll("^/+|/+$", "");
+        String normalizedPrefix = properties.pathPrefix().replaceAll("^/+|/+$", "");
         String normalizedPath = assetPath.replaceAll("^/+", "");
         if (normalizedPrefix.isBlank())
             return normalizedPath;

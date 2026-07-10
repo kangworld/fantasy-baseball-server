@@ -32,10 +32,10 @@ public class JwtAccessTokenParser {
                     .parseSignedClaims(accessToken)
                     .getPayload();
 
-            return Optional.of(AuthenticatedMember.builder()
-                    .memberId(Long.valueOf(claims.getSubject()))
-                    .role(claims.get("role", String.class))
-                    .build());
+            return Optional.of(new AuthenticatedMember(
+                    Long.valueOf(claims.getSubject()),
+                    claims.get("role", String.class)
+            ));
         } catch (JwtException | IllegalArgumentException exception) {
             return Optional.empty();
         }

@@ -41,9 +41,14 @@ class KboGameRecordFetchServiceTest {
     }
 
     private KboApiProperties buildProperties() {
-        KboApiProperties properties = new KboApiProperties();
-        properties.setRecordCacheTtl(java.time.Duration.ofSeconds(30));
-        return properties;
+        return new KboApiProperties(
+                null,
+                null,
+                null,
+                java.time.Duration.ofSeconds(30),
+                null,
+                null
+        );
     }
 
     private static class ManualTicker implements Ticker {

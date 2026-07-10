@@ -49,12 +49,8 @@ public class AuthServiceImpl implements AuthService {
 
         return LoginResponse.builder()
                 .accessToken(accessToken)
-                .refreshToken(refreshTokenValue.getRawToken())
-                .member(LoginMember.builder()
-                        .memberId(member.getMemberId())
-                        .email(member.getEmail())
-                        .displayName(member.getDisplayName())
-                        .build())
+                .refreshToken(refreshTokenValue.rawToken())
+                .member(new LoginMember(member.getMemberId(), member.getEmail(), member.getDisplayName()))
                 .build();
     }
 
@@ -66,14 +62,14 @@ public class AuthServiceImpl implements AuthService {
             throw new RefreshTokenExpiredException();
         }
 
-        Long memberId = refreshTokenParts.getUserId();
+        Long memberId = refreshTokenParts.userId();
         Member member = memberDao.findByMemberId(memberId)
                 .filter(savedMember -> savedMember.getStatus() == MemberStatus.OK)
                 .orElseThrow(RefreshTokenExpiredException::new);
 
-        String savedSecretHash = refreshTokenStore.findSecretHash(memberId, refreshTokenParts.getTokenId())
+        String savedSecretHash = refreshTokenStore.findSecretHash(memberId, refreshTokenParts.tokenId())
                 .orElseThrow(RefreshTokenExpiredException::new);
-        String requestSecretHash = refreshTokenFactory.hash(refreshTokenParts.getSecret());
+        String requestSecretHash = refreshTokenFactory.hash(refreshTokenParts.secret());
 
         if (!savedSecretHash.equals(requestSecretHash)) {
             throw new RefreshTokenExpiredException();
@@ -82,11 +78,11 @@ public class AuthServiceImpl implements AuthService {
         RefreshTokenValue nextRefreshToken = refreshTokenFactory.create(memberId);
         refreshTokenStore.save(nextRefreshToken);
         // 새 토큰을 먼저 저장해 재발급 중간 실패로 기존 세션까지 잃지 않게 한 뒤 이전 토큰을 제거한다.
-        refreshTokenStore.delete(memberId, refreshTokenParts.getTokenId());
+        refreshTokenStore.delete(memberId, refreshTokenParts.tokenId());
 
         return RefreshAccessTokenResponse.builder()
                 .accessToken(jwtAccessTokenFactory.create(memberId, member.getRole().name()))
-                .refreshToken(nextRefreshToken.getRawToken())
+                .refreshToken(nextRefreshToken.rawToken())
                 .build();
     }
 
@@ -100,17 +96,17 @@ public class AuthServiceImpl implements AuthService {
         }
 
         String savedSecretHash = refreshTokenStore.findSecretHash(
-                        refreshTokenParts.getUserId(),
-                        refreshTokenParts.getTokenId()
+                        refreshTokenParts.userId(),
+                        refreshTokenParts.tokenId()
                 )
                 .orElse(null);
-        String requestSecretHash = refreshTokenFactory.hash(refreshTokenParts.getSecret());
+        String requestSecretHash = refreshTokenFactory.hash(refreshTokenParts.secret());
 
         if (!requestSecretHash.equals(savedSecretHash)) {
             return;
         }
 
-        refreshTokenStore.delete(refreshTokenParts.getUserId(), refreshTokenParts.getTokenId());
+        refreshTokenStore.delete(refreshTokenParts.userId(), refreshTokenParts.tokenId());
     }
 
 }

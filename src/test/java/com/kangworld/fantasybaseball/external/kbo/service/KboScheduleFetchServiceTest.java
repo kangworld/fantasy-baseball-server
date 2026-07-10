@@ -39,11 +39,14 @@ class KboScheduleFetchServiceTest {
     }
 
     private KboApiProperties buildProperties() {
-        KboApiProperties properties = new KboApiProperties();
-        properties.setScheduleCacheTtl(Duration.ofMinutes(10));
-        properties.setRecordCacheTtl(Duration.ofSeconds(30));
-        properties.setLiveGameStateCacheTtl(Duration.ofSeconds(15));
-        return properties;
+        return new KboApiProperties(
+                null,
+                null,
+                Duration.ofMinutes(10),
+                Duration.ofSeconds(30),
+                Duration.ofSeconds(15),
+                null
+        );
     }
 
     private KboScheduleGame buildGame(String gameId, KboGameStatus status) {

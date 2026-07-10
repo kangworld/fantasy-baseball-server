@@ -1,4 +1,4 @@
 package com.kangworld.fantasybaseball.point.model;
 
-public interface PointRecordCode {
+public sealed interface PointRecordCode permits BatterPointRecordCode, PitcherPointRecordCode {
 }

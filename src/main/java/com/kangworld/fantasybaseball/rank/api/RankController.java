@@ -33,7 +33,7 @@ public class RankController {
     public ApiResponse<ScoreboardResponse> findMyScoreboard(
             @AuthenticationPrincipal AuthenticatedMember authenticatedMember,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        return ApiResponse.ok(rankService.findMyScoreboard(authenticatedMember.getMemberId(), date));
+        return ApiResponse.ok(rankService.findMyScoreboard(authenticatedMember.memberId(), date));
     }
 
     @GetMapping("/ranks/daily")

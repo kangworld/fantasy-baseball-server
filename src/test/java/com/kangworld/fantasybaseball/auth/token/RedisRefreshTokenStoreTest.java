@@ -53,12 +53,7 @@ class RedisRefreshTokenStoreTest {
         // given
         mockRedisTransaction();
         Duration ttl = Duration.ofDays(14);
-        RefreshTokenValue value = RefreshTokenValue.builder()
-                .userId(1L)
-                .tokenId("token-id")
-                .secretHash("secret-hash")
-                .ttl(ttl)
-                .build();
+        RefreshTokenValue value = new RefreshTokenValue(1L, "token-id", null, "secret-hash", ttl);
 
         // when
         refreshTokenStore.save(value);
@@ -76,12 +71,7 @@ class RedisRefreshTokenStoreTest {
         // given
         mockRedisTransaction();
         Duration ttl = Duration.ofDays(14);
-        RefreshTokenValue value = RefreshTokenValue.builder()
-                .userId(1L)
-                .tokenId("token-id")
-                .secretHash("secret-hash")
-                .ttl(ttl)
-                .build();
+        RefreshTokenValue value = new RefreshTokenValue(1L, "token-id", null, "secret-hash", ttl);
         doThrow(new IllegalStateException("redis command failed"))
                 .when(redisOperations).expire("refresh:1:tokens", ttl);
 

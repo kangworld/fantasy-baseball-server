@@ -19,7 +19,7 @@ public class KboGameRecordFetchService {
     public KboGameRecordFetchService(KboGameRecordFetcher gameRecordFetcher, KboApiProperties properties, Ticker ticker) {
         this.recordCache = Caffeine.newBuilder()
                 // 경기 기록은 경기 중에도 바뀌어서 짧게 새로고침되게 둔다.
-                .refreshAfterWrite(properties.getRecordCacheTtl().toMillis(), TimeUnit.MILLISECONDS)
+                .refreshAfterWrite(properties.recordCacheTtl().toMillis(), TimeUnit.MILLISECONDS)
                 // 경기 단위 캐시는 당일 활성 경기 수를 넘지 않게 상한을 둔다.
                 .maximumSize(10)
                 .ticker(ticker)

@@ -17,7 +17,7 @@ public class KboExternalConfig {
     public RestClient kboRestClient(RestClient.Builder builder, KboApiProperties properties) {
         // KBO 호출은 baseUrl만 공통으로 고정하고, 경로/쿼리는 fetcher가 책임지게 둔다.
         return builder
-                .baseUrl(properties.getBaseUrl())
+                .baseUrl(properties.baseUrl())
                 .build();
     }
 
@@ -26,7 +26,7 @@ public class KboExternalConfig {
     public RestClient kboImageRestClient(RestClient.Builder builder, KboApiProperties properties) {
         // KBO 선수 이미지 CDN은 네이버 스포츠 API와 host가 달라서 별도 client로 분리한다.
         return builder
-                .baseUrl(properties.getImageBaseUrl())
+                .baseUrl(properties.imageBaseUrl())
                 .build();
     }
 

@@ -19,7 +19,7 @@ public class KboLiveGameStateFetchService {
     public KboLiveGameStateFetchService(KboLiveGameStateFetcher liveGameStateFetcher, KboApiProperties properties, Ticker ticker) {
         this.liveGameStateCache = Caffeine.newBuilder()
                 // 실시간 상태는 짧게 stale 처리하고 다음 조회에서 새 값을 다시 읽게 둔다.
-                .refreshAfterWrite(properties.getLiveGameStateCacheTtl().toMillis(), TimeUnit.MILLISECONDS)
+                .refreshAfterWrite(properties.liveGameStateCacheTtl().toMillis(), TimeUnit.MILLISECONDS)
                 // 라이브 상태는 동시에 열려 있는 경기 수만큼만 잡으면 충분하다.
                 .maximumSize(10)
                 .ticker(ticker)

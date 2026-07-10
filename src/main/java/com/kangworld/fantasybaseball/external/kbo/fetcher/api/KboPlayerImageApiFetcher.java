@@ -40,11 +40,11 @@ public class KboPlayerImageApiFetcher implements KboPlayerImageFetcher {
                 return Optional.empty();
 
             MediaType contentType = response.getHeaders().getContentType();
-            return Optional.of(AssetFile.builder()
-                    .bytes(body)
-                    .contentType(contentType == null ? DEFAULT_CONTENT_TYPE : contentType.toString())
-                    .extension(DEFAULT_EXTENSION)
-                    .build());
+            return Optional.of(new AssetFile(
+                    body,
+                    contentType == null ? DEFAULT_CONTENT_TYPE : contentType.toString(),
+                    DEFAULT_EXTENSION
+            ));
         } catch (HttpClientErrorException exception) {
             if (exception.getStatusCode() == HttpStatus.NOT_FOUND)
                 return Optional.empty();

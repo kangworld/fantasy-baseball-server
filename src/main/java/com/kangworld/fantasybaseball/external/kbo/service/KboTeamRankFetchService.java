@@ -20,7 +20,7 @@ public class KboTeamRankFetchService {
     public KboTeamRankFetchService(KboTeamRankFetcher teamRankFetcher, KboApiProperties properties, Ticker ticker) {
         this.teamRankCache = Caffeine.newBuilder()
                 // 팀 순위표는 모든 사용자가 같은 시즌 데이터를 보므로 짧은 시즌 단위 캐시만 둔다.
-                .refreshAfterWrite(properties.getTeamRankCacheTtl().toMillis(), TimeUnit.MILLISECONDS)
+                .refreshAfterWrite(properties.teamRankCacheTtl().toMillis(), TimeUnit.MILLISECONDS)
                 .maximumSize(3)
                 .ticker(ticker)
                 .build(season -> List.copyOf(teamRankFetcher.fetch(season)));

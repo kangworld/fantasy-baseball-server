@@ -32,11 +32,7 @@ class S3AssetStorageIntegrationTest {
         // S3 콘솔에서 실제 object 생성을 확인하기 위한 임시 테스트다.
         String assetPath = "public/tmp/manual-write-test/manual-s3-write-test.jpg";
         byte[] bytes = "manual-s3-write-test".getBytes();
-        AssetFile assetFile = AssetFile.builder()
-                .bytes(bytes)
-                .contentType("image/jpeg")
-                .extension("jpg")
-                .build();
+        AssetFile assetFile = new AssetFile(bytes, "image/jpeg", "jpg");
 
         assetStorage.upload(assetPath, assetFile);
 
@@ -48,11 +44,7 @@ class S3AssetStorageIntegrationTest {
         // given
         String assetPath = "public/tmp/integration-test/%s.jpg".formatted(java.util.UUID.randomUUID());
         byte[] bytes = "test-player-image".getBytes();
-        AssetFile assetFile = AssetFile.builder()
-                .bytes(bytes)
-                .contentType("image/jpeg")
-                .extension("jpg")
-                .build();
+        AssetFile assetFile = new AssetFile(bytes, "image/jpeg", "jpg");
         boolean deleted = false;
 
         try {
@@ -63,11 +55,11 @@ class S3AssetStorageIntegrationTest {
             assertThat(assetStorage.findBytes(assetPath)).contains(bytes);
 
             HeadObjectResponse response = s3Client.headObject(HeadObjectRequest.builder()
-                    .bucket(properties.getBucket())
+                    .bucket(properties.bucket())
                     .key(objectKey(assetPath))
                     .build());
             assertThat(response.contentType()).isEqualTo("image/jpeg");
-            assertThat(response.cacheControl()).isEqualTo(properties.getCacheControl());
+            assertThat(response.cacheControl()).isEqualTo(properties.cacheControl());
 
             s3Client.deleteObject(deleteRequest(objectKey(assetPath)));
             deleted = true;
@@ -79,7 +71,7 @@ class S3AssetStorageIntegrationTest {
     }
 
     private String objectKey(String assetPath) {
-        String normalizedPrefix = properties.getPathPrefix().replaceAll("^/+|/+$", "");
+        String normalizedPrefix = properties.pathPrefix().replaceAll("^/+|/+$", "");
         String normalizedPath = assetPath.replaceAll("^/+", "");
         if (normalizedPrefix.isBlank())
             return normalizedPath;
@@ -89,7 +81,7 @@ class S3AssetStorageIntegrationTest {
 
     private DeleteObjectRequest deleteRequest(String objectKey) {
         return DeleteObjectRequest.builder()
-                .bucket(properties.getBucket())
+                .bucket(properties.bucket())
                 .key(objectKey)
                 .build();
     }

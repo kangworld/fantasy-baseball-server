@@ -52,7 +52,7 @@ class AbuseRateLimitInterceptorTest {
     void preHandle은_인증_사용자면_memberId를_key로_조회_API를_제한한다() {
         // given
         SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
-                AuthenticatedMember.builder().memberId(7L).role("USER").build(),
+                new AuthenticatedMember(7L, "USER"),
                 null
         ));
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/ranks/daily");

@@ -34,21 +34,21 @@ public class RosterController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @AbuseLimit(policy = "roster-submit", key = "#authenticatedMember.memberId")
+    @AbuseLimit(policy = "roster-submit", key = "#authenticatedMember.memberId()")
     public ApiResponse<RosterResponse> submit(
             @AuthenticationPrincipal AuthenticatedMember authenticatedMember,
             @Valid @RequestBody RosterSubmitRequest request) {
-        RosterResponse response = rosterService.submit(authenticatedMember.getMemberId(), request);
+        RosterResponse response = rosterService.submit(authenticatedMember.memberId(), request);
 
         return ApiResponse.of(HttpStatus.CREATED, "로스터 제출이 완료되었습니다.", response);
     }
 
     @PutMapping
-    @AbuseLimit(policy = "roster-submit", key = "#authenticatedMember.memberId")
+    @AbuseLimit(policy = "roster-submit", key = "#authenticatedMember.memberId()")
     public ApiResponse<RosterResponse> update(
             @AuthenticationPrincipal AuthenticatedMember authenticatedMember,
             @Valid @RequestBody RosterSubmitRequest request) {
-        RosterResponse response = rosterService.update(authenticatedMember.getMemberId(), request);
+        RosterResponse response = rosterService.update(authenticatedMember.memberId(), request);
 
         return ApiResponse.of(HttpStatus.OK, "로스터 수정이 완료되었습니다.", response);
     }
@@ -58,14 +58,14 @@ public class RosterController {
             @AuthenticationPrincipal AuthenticatedMember authenticatedMember,
             @RequestParam LocalDate date) {
 
-        return ApiResponse.ok(rosterService.find(authenticatedMember.getMemberId(), date));
+        return ApiResponse.ok(rosterService.find(authenticatedMember.memberId(), date));
     }
 
     @GetMapping("/player-records")
     public ApiResponse<List<PlayerRecordResponse>> findPlayerRecords(
             @AuthenticationPrincipal AuthenticatedMember authenticatedMember) {
 
-        return ApiResponse.ok(rosterService.findMyPlayerRecords(authenticatedMember.getMemberId()));
+        return ApiResponse.ok(rosterService.findMyPlayerRecords(authenticatedMember.memberId()));
     }
 
 }

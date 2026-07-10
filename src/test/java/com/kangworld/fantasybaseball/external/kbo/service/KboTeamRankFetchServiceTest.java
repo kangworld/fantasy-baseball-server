@@ -33,9 +33,14 @@ class KboTeamRankFetchServiceTest {
     }
 
     private KboApiProperties buildProperties() {
-        KboApiProperties properties = new KboApiProperties();
-        properties.setTeamRankCacheTtl(Duration.ofSeconds(30));
-        return properties;
+        return new KboApiProperties(
+                null,
+                null,
+                null,
+                null,
+                null,
+                Duration.ofSeconds(30)
+        );
     }
 
     private KboTeamRank buildRank() {

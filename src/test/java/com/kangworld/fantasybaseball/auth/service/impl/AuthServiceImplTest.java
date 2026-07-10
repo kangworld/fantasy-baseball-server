@@ -64,7 +64,7 @@ class AuthServiceImplTest {
         // then
         assertThat(response.getAccessToken()).isNotBlank();
         assertThat(response.getRefreshToken()).startsWith(memberId + ".");
-        assertThat(response.getMember().getEmail()).isEqualTo("service-login@example.com");
+        assertThat(response.getMember().email()).isEqualTo("service-login@example.com");
         verify(refreshTokenStore).save(any());
     }
 

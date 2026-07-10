@@ -127,11 +127,7 @@ class PlayerImageBatchServiceTest {
     }
 
     private AssetFile imageFile(byte[] bytes) {
-        return AssetFile.builder()
-                .bytes(bytes)
-                .contentType("image/jpeg")
-                .extension("jpg")
-                .build();
+        return new AssetFile(bytes, "image/jpeg", "jpg");
     }
 
     private PlayerImageRefreshTarget target(long playerId, String imgPath) {

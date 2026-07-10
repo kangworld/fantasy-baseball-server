@@ -2,7 +2,6 @@ package com.kangworld.fantasybaseball.settlement.service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -90,8 +89,8 @@ public class PlayerPointSettlementService {
         // 배점 룰은 한 번만 조회한다.
         Map<PlayerType, List<PointRule>> rulesByType = pointRuleDao.findAllActive().stream()
                 .collect(Collectors.groupingBy(PointRule::getPlayerType));
-        List<PointRule> batterRules = rulesByType.getOrDefault(PlayerType.BATTER, Collections.emptyList());
-        List<PointRule> pitcherRules = rulesByType.getOrDefault(PlayerType.PITCHER, Collections.emptyList());
+        List<PointRule> batterRules = rulesByType.getOrDefault(PlayerType.BATTER, List.of());
+        List<PointRule> pitcherRules = rulesByType.getOrDefault(PlayerType.PITCHER, List.of());
 
         Map<DailyPointKey, Integer> pointByKey = gameRecords.stream()
                 .flatMap(gameRecord -> calculateGamePoints(gameRecord, batterRules, pitcherRules))

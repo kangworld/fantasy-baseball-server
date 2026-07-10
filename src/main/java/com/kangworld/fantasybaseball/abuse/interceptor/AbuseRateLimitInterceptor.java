@@ -70,7 +70,7 @@ public class AbuseRateLimitInterceptor implements HandlerInterceptor {
     private String resolveKey(HttpServletRequest request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof AuthenticatedMember authenticatedMember)
-            return "member:" + authenticatedMember.getMemberId();
+            return "member:" + authenticatedMember.memberId();
 
         return "ip:" + resolveClientIp(request);
     }

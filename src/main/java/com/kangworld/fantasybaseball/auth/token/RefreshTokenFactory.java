@@ -28,13 +28,13 @@ public class RefreshTokenFactory {
         // Redis에는 원본 토큰을 저장하지 않고 secret hash만 저장한다.
         String rawToken = userId + "." + tokenId + "." + secret;
 
-        return RefreshTokenValue.builder()
-                .userId(userId)
-                .tokenId(tokenId)
-                .rawToken(rawToken)
-                .secretHash(hash(secret))
-                .ttl(Duration.ofSeconds(refreshTokenExpirationSeconds))
-                .build();
+        return new RefreshTokenValue(
+                userId,
+                tokenId,
+                rawToken,
+                hash(secret),
+                Duration.ofSeconds(refreshTokenExpirationSeconds)
+        );
     }
 
     public RefreshTokenParts parse(String rawToken) {
@@ -49,11 +49,7 @@ public class RefreshTokenFactory {
         }
 
         try {
-            return RefreshTokenParts.builder()
-                    .userId(Long.parseLong(parts[0]))
-                    .tokenId(parts[1])
-                    .secret(parts[2])
-                    .build();
+            return new RefreshTokenParts(Long.parseLong(parts[0]), parts[1], parts[2]);
         } catch (NumberFormatException exception) {
             return null;
         }

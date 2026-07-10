@@ -1,6 +1,5 @@
 package com.kangworld.fantasybaseball.auth.token;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -23,20 +22,20 @@ public class RedisRefreshTokenStore implements RefreshTokenStore {
 
     @Override
     public void save(RefreshTokenValue refreshTokenValue) {
-        String key = buildKey(refreshTokenValue.getUserId(), refreshTokenValue.getTokenId());
-        String tokenSetKey = buildTokenSetKey(refreshTokenValue.getUserId());
+        String key = buildKey(refreshTokenValue.userId(), refreshTokenValue.tokenId());
+        String tokenSetKey = buildTokenSetKey(refreshTokenValue.userId());
 
         executeInTransaction(operations -> {
             // key에는 tokenId만 포함하고, value에는 secret hash만 저장한다.
             // 토큰 원문이 Redis에 남지 않도록 하기 위한 구조다.
             operations.opsForValue().set(
                     key,
-                    refreshTokenValue.getSecretHash(),
-                    refreshTokenValue.getTtl()
+                    refreshTokenValue.secretHash(),
+                    refreshTokenValue.ttl()
             );
             // 회원별 tokenId set은 전체 refresh token 삭제를 위한 보조 인덱스다.
-            operations.opsForSet().add(tokenSetKey, refreshTokenValue.getTokenId());
-            operations.expire(tokenSetKey, refreshTokenValue.getTtl());
+            operations.opsForSet().add(tokenSetKey, refreshTokenValue.tokenId());
+            operations.expire(tokenSetKey, refreshTokenValue.ttl());
         });
     }
 
@@ -63,15 +62,15 @@ public class RedisRefreshTokenStore implements RefreshTokenStore {
         if (tokenIds == null || tokenIds.isEmpty())
             return;
 
-        List<String> keys = new ArrayList<>();
-        for (String tokenId : tokenIds)
-            keys.add(buildKey(userId, tokenId));
+        List<String> keys = tokenIds.stream()
+                .map(tokenId -> buildKey(userId, tokenId))
+                .toList();
 
         executeInTransaction(operations -> operations.delete(keys));
     }
 
     private void executeInTransaction(Consumer<RedisOperations<String, String>> command) {
-        stringRedisTemplate.execute(new SessionCallback<List<Object>>() {
+        stringRedisTemplate.execute(new SessionCallback<>() {
 
             @Override
             @SuppressWarnings({"unchecked", "NullableProblems"})

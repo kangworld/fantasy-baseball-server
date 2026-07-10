@@ -2,20 +2,15 @@ package com.kangworld.fantasybaseball.asset.storage.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-import lombok.Getter;
-import lombok.Setter;
-
-@Getter
-@Setter
 @ConfigurationProperties(prefix = "asset.storage.s3")
-public class AssetStorageProperties {
+public record AssetStorageProperties(
+        String bucket,
+        String region,
+        String pathPrefix,
+        String cacheControl
+) {
 
-    private String bucket;
-    private String region;
-    private String pathPrefix;
-    private String cacheControl;
-
-    public String getPublicBaseUrl() {
+    public String publicBaseUrl() {
         String normalizedPrefix = pathPrefix.replaceAll("^/+|/+$", "");
         String baseUrl = "https://%s.s3.%s.amazonaws.com".formatted(bucket, region);
         if (normalizedPrefix.isBlank())

@@ -49,11 +49,11 @@ public class PlayerImageBatchService {
     }
 
     private void uploadIfChanged(long playerId, PlayerImage savedImage, AssetFile imageFile) {
-        String imgPath = buildImgPath(playerId, imageFile.getExtension());
+        String imgPath = buildImgPath(playerId, imageFile.extension());
         // 팀 변경 감지 시에도 실제 이미지 bytes가 같으면 S3 재업로드와 DB timestamp 변경을 건너뛴다.
         if (savedImage != null
                 && imgPath.equals(savedImage.getImgPath())
-                && hasSameBytes(savedImage.getImgPath(), imageFile.getBytes()))
+                && hasSameBytes(savedImage.getImgPath(), imageFile.bytes()))
             return;
 
         // S3 업로드가 성공한 뒤 DB를 갱신한다. 현재 트랜잭션은 DB 변경 경계를 유지하고, S3 보상 처리는 별도 운영 과제로 둔다.
