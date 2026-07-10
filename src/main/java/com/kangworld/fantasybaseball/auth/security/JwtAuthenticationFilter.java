@@ -7,10 +7,13 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.WebUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.kangworld.fantasybaseball.auth.cookie.AuthCookieFactory;
 import com.kangworld.fantasybaseball.auth.token.JwtAccessTokenParser;
 
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -29,14 +32,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
-        String authorizationHeader = request.getHeader("Authorization");
+        Cookie accessTokenCookie = WebUtils.getCookie(request, AuthCookieFactory.ACCESS_TOKEN_COOKIE_NAME);
 
-        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+        if (accessTokenCookie == null || accessTokenCookie.getValue().isBlank()) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        String accessToken = authorizationHeader.substring(7);
+        String accessToken = accessTokenCookie.getValue();
 
         jwtAccessTokenParser.parse(accessToken).ifPresent(authenticatedMember -> {
             UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(

@@ -23,8 +23,6 @@ import com.kangworld.fantasybaseball.auth.exception.RefreshTokenExpiredException
 import com.kangworld.fantasybaseball.auth.service.AuthService;
 import com.kangworld.fantasybaseball.auth.service.dto.LoginRequest;
 import com.kangworld.fantasybaseball.auth.service.dto.LoginResponse;
-import com.kangworld.fantasybaseball.auth.service.dto.LogoutRequest;
-import com.kangworld.fantasybaseball.auth.service.dto.RefreshAccessTokenRequest;
 import com.kangworld.fantasybaseball.auth.service.dto.RefreshAccessTokenResponse;
 import com.kangworld.fantasybaseball.auth.token.RefreshTokenFactory;
 import com.kangworld.fantasybaseball.auth.token.RefreshTokenStore;
@@ -57,7 +55,7 @@ class AuthServiceImplTest {
     void login은_토큰을_발급하고_refreshToken을_저장한다() {
         // given
         doNothing().when(refreshTokenStore).save(any());
-        insertMember("service-login@example.com", "plain-password", "cleanup01", MemberStatus.OK);
+        long memberId = insertMember("service-login@example.com", "plain-password", "cleanup01", MemberStatus.OK);
         LoginRequest request = new LoginRequest("service-login@example.com", "plain-password");
 
         // when
@@ -65,7 +63,7 @@ class AuthServiceImplTest {
 
         // then
         assertThat(response.getAccessToken()).isNotBlank();
-        assertThat(response.getRefreshToken()).contains(".");
+        assertThat(response.getRefreshToken()).startsWith(memberId + ".");
         assertThat(response.getMember().getEmail()).isEqualTo("service-login@example.com");
         verify(refreshTokenStore).save(any());
     }
@@ -97,10 +95,11 @@ class AuthServiceImplTest {
     @Test
     void logout은_refreshToken에_해당하는_세션을_삭제한다() {
         // given
-        LogoutRequest request = new LogoutRequest("token-id.secret-value");
+        doReturn(java.util.Optional.of(refreshTokenFactory.hash("secret-value")))
+                .when(refreshTokenStore).findSecretHash(11L, "token-id");
 
         // when
-        authService.logout(11L, request);
+        authService.logout("11.token-id.secret-value");
 
         // then
         verify(refreshTokenStore).delete(11L, "token-id");
@@ -109,12 +108,20 @@ class AuthServiceImplTest {
     @Test
     void logout은_refreshToken형식이_잘못되면_삭제를_시도하지_않는다() {
         // given
-        LogoutRequest request = new LogoutRequest("invalid-token");
-
         // when
-        authService.logout(11L, request);
+        authService.logout("invalid-token");
 
         // then
+        verify(refreshTokenStore, org.mockito.Mockito.never()).delete(any(), any());
+    }
+
+    @Test
+    void logout은_refreshToken_secret이_일치하지_않으면_삭제하지_않는다() {
+        doReturn(java.util.Optional.of("different-secret-hash"))
+                .when(refreshTokenStore).findSecretHash(11L, "token-id");
+
+        authService.logout("11.token-id.secret-value");
+
         verify(refreshTokenStore, org.mockito.Mockito.never()).delete(any(), any());
     }
 
@@ -124,23 +131,22 @@ class AuthServiceImplTest {
         long memberId = insertMember("refresh-service@example.com", "plain-password", "cleanup01", MemberStatus.OK);
         doReturn(java.util.Optional.of(refreshTokenFactory.hash("secret-value")))
                 .when(refreshTokenStore).findSecretHash(eq(memberId), eq("token-id"));
-        RefreshAccessTokenRequest request = new RefreshAccessTokenRequest(memberId, "token-id.secret-value");
-
         // when
-        RefreshAccessTokenResponse response = authService.refreshAccessToken(request);
+        RefreshAccessTokenResponse response = authService.refreshAccessToken(memberId + ".token-id.secret-value");
 
         // then
         assertThat(response.getAccessToken()).isNotBlank();
+        assertThat(response.getRefreshToken()).startsWith(memberId + ".");
+        verify(refreshTokenStore).save(any());
+        verify(refreshTokenStore).delete(memberId, "token-id");
     }
 
     @Test
     void refreshAccessToken은_refreshToken이_없으면_재로그인을_유도한다() {
         // given
         long memberId = insertMember("refresh-expired-service@example.com", "plain-password", "cleanup01", MemberStatus.OK);
-        RefreshAccessTokenRequest request = new RefreshAccessTokenRequest(memberId, "token-id.secret-value");
-
         // when then
-        assertThatThrownBy(() -> authService.refreshAccessToken(request))
+        assertThatThrownBy(() -> authService.refreshAccessToken(memberId + ".token-id.secret-value"))
                 .isInstanceOf(RefreshTokenExpiredException.class);
     }
 
@@ -150,10 +156,14 @@ class AuthServiceImplTest {
         long memberId = insertMember("refresh-mismatch-service@example.com", "plain-password", "cleanup01", MemberStatus.OK);
         doReturn(java.util.Optional.of("different-secret-hash"))
                 .when(refreshTokenStore).findSecretHash(eq(memberId), eq("token-id"));
-        RefreshAccessTokenRequest request = new RefreshAccessTokenRequest(memberId, "token-id.secret-value");
-
         // when then
-        assertThatThrownBy(() -> authService.refreshAccessToken(request))
+        assertThatThrownBy(() -> authService.refreshAccessToken(memberId + ".token-id.secret-value"))
+                .isInstanceOf(RefreshTokenExpiredException.class);
+    }
+
+    @Test
+    void refreshAccessToken은_회원식별자가_없는_토큰이면_재로그인을_유도한다() {
+        assertThatThrownBy(() -> authService.refreshAccessToken("token-id.secret-value"))
                 .isInstanceOf(RefreshTokenExpiredException.class);
     }
 

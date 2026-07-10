@@ -37,6 +37,8 @@ management:
         include: health,info,prometheus
 
 security:
+  auth-cookie:
+    secure: ${AUTH_COOKIE_SECURE:false}
   cors:
     allowed-origins: http://localhost:5173
   jwt:

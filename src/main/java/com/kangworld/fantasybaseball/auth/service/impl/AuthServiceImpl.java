@@ -9,8 +9,6 @@ import com.kangworld.fantasybaseball.auth.service.AuthService;
 import com.kangworld.fantasybaseball.auth.service.dto.LoginMember;
 import com.kangworld.fantasybaseball.auth.service.dto.LoginRequest;
 import com.kangworld.fantasybaseball.auth.service.dto.LoginResponse;
-import com.kangworld.fantasybaseball.auth.service.dto.LogoutRequest;
-import com.kangworld.fantasybaseball.auth.service.dto.RefreshAccessTokenRequest;
 import com.kangworld.fantasybaseball.auth.service.dto.RefreshAccessTokenResponse;
 import com.kangworld.fantasybaseball.auth.service.dto.RefreshTokenParts;
 import com.kangworld.fantasybaseball.auth.service.dto.RefreshTokenValue;
@@ -61,18 +59,19 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public RefreshAccessTokenResponse refreshAccessToken(RefreshAccessTokenRequest request) {
-        RefreshTokenParts refreshTokenParts = refreshTokenFactory.parse(request.getRefreshToken());
+    public RefreshAccessTokenResponse refreshAccessToken(String refreshToken) {
+        RefreshTokenParts refreshTokenParts = refreshTokenFactory.parse(refreshToken);
 
         if (refreshTokenParts == null) {
             throw new RefreshTokenExpiredException();
         }
 
-        Member member = memberDao.findByMemberId(request.getMemberId())
+        Long memberId = refreshTokenParts.getUserId();
+        Member member = memberDao.findByMemberId(memberId)
                 .filter(savedMember -> savedMember.getStatus() == MemberStatus.OK)
                 .orElseThrow(RefreshTokenExpiredException::new);
 
-        String savedSecretHash = refreshTokenStore.findSecretHash(request.getMemberId(), refreshTokenParts.getTokenId())
+        String savedSecretHash = refreshTokenStore.findSecretHash(memberId, refreshTokenParts.getTokenId())
                 .orElseThrow(RefreshTokenExpiredException::new);
         String requestSecretHash = refreshTokenFactory.hash(refreshTokenParts.getSecret());
 
@@ -80,21 +79,38 @@ public class AuthServiceImpl implements AuthService {
             throw new RefreshTokenExpiredException();
         }
 
+        RefreshTokenValue nextRefreshToken = refreshTokenFactory.create(memberId);
+        refreshTokenStore.save(nextRefreshToken);
+        // 새 토큰을 먼저 저장해 재발급 중간 실패로 기존 세션까지 잃지 않게 한 뒤 이전 토큰을 제거한다.
+        refreshTokenStore.delete(memberId, refreshTokenParts.getTokenId());
+
         return RefreshAccessTokenResponse.builder()
-                .accessToken(jwtAccessTokenFactory.create(member.getMemberId(), member.getRole().name()))
+                .accessToken(jwtAccessTokenFactory.create(memberId, member.getRole().name()))
+                .refreshToken(nextRefreshToken.getRawToken())
                 .build();
     }
 
     @Override
-    public void logout(Long memberId, LogoutRequest request) {
-        // refresh token은 tokenId.secret 구조라서 tokenId만 분리해 삭제 키를 만든다.
-        RefreshTokenParts refreshTokenParts = refreshTokenFactory.parse(request.getRefreshToken());
+    public void logout(String refreshToken) {
+        // refresh token은 memberId.tokenId.secret 구조라서 회원과 tokenId를 분리해 삭제 키를 만든다.
+        RefreshTokenParts refreshTokenParts = refreshTokenFactory.parse(refreshToken);
 
         if (refreshTokenParts == null) {
             return;
         }
 
-        refreshTokenStore.delete(memberId, refreshTokenParts.getTokenId());
+        String savedSecretHash = refreshTokenStore.findSecretHash(
+                        refreshTokenParts.getUserId(),
+                        refreshTokenParts.getTokenId()
+                )
+                .orElse(null);
+        String requestSecretHash = refreshTokenFactory.hash(refreshTokenParts.getSecret());
+
+        if (!requestSecretHash.equals(savedSecretHash)) {
+            return;
+        }
+
+        refreshTokenStore.delete(refreshTokenParts.getUserId(), refreshTokenParts.getTokenId());
     }
 
 }

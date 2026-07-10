@@ -1,5 +1,7 @@
 package com.kangworld.fantasybaseball.game.api;
 
+import static com.kangworld.fantasybaseball.support.AuthTestCookies.accessTokenCookie;
+import static com.kangworld.fantasybaseball.support.AuthTestCookies.trustedOrigin;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doReturn;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -91,7 +93,7 @@ class GameControllerTest {
 
         // when then
         mockMvc.perform(get("/api/games/schedule")
-                        .header("Authorization", "Bearer " + accessToken)
+                        .cookie(accessTokenCookie(accessToken)).with(trustedOrigin())
                         .param("date", "2026-04-28"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
@@ -119,7 +121,7 @@ class GameControllerTest {
 
         // when then
         mockMvc.perform(get("/api/games/live-states")
-                        .header("Authorization", "Bearer " + accessToken))
+                        .cookie(accessTokenCookie(accessToken)).with(trustedOrigin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.length()").value(2))
@@ -145,7 +147,7 @@ class GameControllerTest {
 
         // when then
         mockMvc.perform(get("/api/games/game-2/live-state")
-                        .header("Authorization", "Bearer " + accessToken))
+                        .cookie(accessTokenCookie(accessToken)).with(trustedOrigin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.gameId").value("game-2"))
@@ -164,7 +166,7 @@ class GameControllerTest {
 
         // when then
         mockMvc.perform(get("/api/games/team-ranks")
-                        .header("Authorization", "Bearer " + accessToken)
+                        .cookie(accessTokenCookie(accessToken)).with(trustedOrigin())
                         .param("season", "2026"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
@@ -186,7 +188,7 @@ class GameControllerTest {
 
         // when then
         mockMvc.perform(get("/api/games/team-ranks")
-                        .header("Authorization", "Bearer " + accessToken))
+                        .cookie(accessTokenCookie(accessToken)).with(trustedOrigin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[0].teamCode").value("KT"));
     }
@@ -212,7 +214,7 @@ class GameControllerTest {
 
         // when then
         mockMvc.perform(get("/api/player-records")
-                        .header("Authorization", "Bearer " + accessToken))
+                        .cookie(accessTokenCookie(accessToken)).with(trustedOrigin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data[0].gameId").value("game-2"))

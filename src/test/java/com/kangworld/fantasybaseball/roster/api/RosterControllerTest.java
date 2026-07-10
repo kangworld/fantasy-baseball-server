@@ -1,5 +1,7 @@
 package com.kangworld.fantasybaseball.roster.api;
 
+import static com.kangworld.fantasybaseball.support.AuthTestCookies.accessTokenCookie;
+import static com.kangworld.fantasybaseball.support.AuthTestCookies.trustedOrigin;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -26,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
@@ -111,6 +114,21 @@ class RosterControllerTest {
     }
 
     @Test
+    void rosters_me는_허용되지_않은_referer이면_403을_반환한다() throws Exception {
+        String accessToken = jwtAccessTokenFactory.create(1L, "USER");
+        String requestBody = objectMapper.writeValueAsString(rosterRequest(defaultPlayerIds()));
+
+        mockMvc.perform(post("/api/rosters/me")
+                        .cookie(accessTokenCookie(accessToken))
+                        .header(HttpHeaders.REFERER, "https://evil.example.com/rosters")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value(403))
+                .andExpect(jsonPath("$.message").value("허용되지 않은 요청 출처입니다."));
+    }
+
+    @Test
     void rosters_config는_라인업_보드_구성에_필요한_로스터_규칙을_반환한다() throws Exception {
         // when then
         mockMvc.perform(get("/api/rosters/config"))
@@ -133,7 +151,7 @@ class RosterControllerTest {
 
         // when then
         mockMvc.perform(post("/api/rosters/me")
-                        .header("Authorization", "Bearer " + accessToken)
+                        .cookie(accessTokenCookie(accessToken)).with(trustedOrigin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isCreated())
@@ -153,13 +171,13 @@ class RosterControllerTest {
         String accessToken = jwtAccessTokenFactory.create(1L, "USER");
         String requestBody = objectMapper.writeValueAsString(rosterRequest(defaultPlayerIds()));
         mockMvc.perform(post("/api/rosters/me")
-                .header("Authorization", "Bearer " + accessToken)
+                .cookie(accessTokenCookie(accessToken)).with(trustedOrigin())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody));
 
         // when then
         mockMvc.perform(get("/api/rosters/me")
-                        .header("Authorization", "Bearer " + accessToken)
+                        .cookie(accessTokenCookie(accessToken)).with(trustedOrigin())
                         .param("date", ROSTER_DATE.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.date").value(ROSTER_DATE.toString()))
@@ -173,7 +191,7 @@ class RosterControllerTest {
 
         // when then
         mockMvc.perform(get("/api/rosters/me")
-                        .header("Authorization", "Bearer " + accessToken)
+                        .cookie(accessTokenCookie(accessToken)).with(trustedOrigin())
                         .param("date", ROSTER_DATE.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").doesNotExist());
@@ -186,7 +204,7 @@ class RosterControllerTest {
         String accessToken = jwtAccessTokenFactory.create(1L, "USER");
         String requestBody = objectMapper.writeValueAsString(rosterRequest(defaultPlayerIds()));
         mockMvc.perform(post("/api/rosters/me")
-                .header("Authorization", "Bearer " + accessToken)
+                .cookie(accessTokenCookie(accessToken)).with(trustedOrigin())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(requestBody));
         given(gameService.findTodayPlayerRecordsByPlayerIds(argThat(playerIds ->
@@ -195,7 +213,7 @@ class RosterControllerTest {
 
         // when then
         mockMvc.perform(get("/api/rosters/me/player-records")
-                        .header("Authorization", "Bearer " + accessToken))
+                        .cookie(accessTokenCookie(accessToken)).with(trustedOrigin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.length()").value(1))
@@ -210,7 +228,7 @@ class RosterControllerTest {
 
         // when then
         mockMvc.perform(get("/api/rosters/me/player-records")
-                        .header("Authorization", "Bearer " + accessToken))
+                        .cookie(accessTokenCookie(accessToken)).with(trustedOrigin()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.length()").value(0));
@@ -228,13 +246,13 @@ class RosterControllerTest {
 
         String accessToken = jwtAccessTokenFactory.create(1L, "USER");
         mockMvc.perform(post("/api/rosters/me")
-                .header("Authorization", "Bearer " + accessToken)
+                .cookie(accessTokenCookie(accessToken)).with(trustedOrigin())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(rosterRequest(firstPlayerIds))));
 
         // when then
         mockMvc.perform(put("/api/rosters/me")
-                        .header("Authorization", "Bearer " + accessToken)
+                        .cookie(accessTokenCookie(accessToken)).with(trustedOrigin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(rosterRequest(secondPlayerIds))))
                 .andExpect(status().isOk())
@@ -254,7 +272,7 @@ class RosterControllerTest {
 
         // when then
         mockMvc.perform(post("/api/rosters/me")
-                        .header("Authorization", "Bearer " + accessToken)
+                        .cookie(accessTokenCookie(accessToken)).with(trustedOrigin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isBadRequest())
@@ -275,7 +293,7 @@ class RosterControllerTest {
 
         // when then
         mockMvc.perform(post("/api/rosters/me")
-                        .header("Authorization", "Bearer " + accessToken)
+                        .cookie(accessTokenCookie(accessToken)).with(trustedOrigin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isBadRequest())
@@ -295,7 +313,7 @@ class RosterControllerTest {
 
         // when then
         mockMvc.perform(post("/api/rosters/me")
-                        .header("Authorization", "Bearer " + accessToken)
+                        .cookie(accessTokenCookie(accessToken)).with(trustedOrigin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isBadRequest())
@@ -312,7 +330,7 @@ class RosterControllerTest {
 
         // when then
         mockMvc.perform(post("/api/rosters/me")
-                        .header("Authorization", "Bearer " + accessToken)
+                        .cookie(accessTokenCookie(accessToken)).with(trustedOrigin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isBadRequest())
@@ -333,7 +351,7 @@ class RosterControllerTest {
 
         String accessToken = jwtAccessTokenFactory.create(1L, "USER");
         mockMvc.perform(post("/api/rosters/me")
-                .header("Authorization", "Bearer " + accessToken)
+                .cookie(accessTokenCookie(accessToken)).with(trustedOrigin())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(rosterRequest(firstPlayerIds))));
 
@@ -341,7 +359,7 @@ class RosterControllerTest {
 
         // when then
         mockMvc.perform(put("/api/rosters/me")
-                        .header("Authorization", "Bearer " + accessToken)
+                        .cookie(accessTokenCookie(accessToken)).with(trustedOrigin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(rosterRequest(secondPlayerIds))))
                 .andExpect(status().isOk())
@@ -361,7 +379,7 @@ class RosterControllerTest {
 
         String accessToken = jwtAccessTokenFactory.create(1L, "USER");
         mockMvc.perform(post("/api/rosters/me")
-                .header("Authorization", "Bearer " + accessToken)
+                .cookie(accessTokenCookie(accessToken)).with(trustedOrigin())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(rosterRequest(playerIds))));
 
@@ -369,7 +387,7 @@ class RosterControllerTest {
 
         // when then
         mockMvc.perform(put("/api/rosters/me")
-                        .header("Authorization", "Bearer " + accessToken)
+                        .cookie(accessTokenCookie(accessToken)).with(trustedOrigin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(rosterRequest(movedPlayerIds))))
                 .andExpect(status().isBadRequest())

@@ -24,9 +24,9 @@ public class RefreshTokenFactory {
     public RefreshTokenValue create(Long userId) {
         String tokenId = UUID.randomUUID().toString();
         String secret = UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString().replace("-", "");
-        // tokenId는 Redis 조회 키, secret은 실제 소유 증명값으로 분리한다.
+        // memberId는 쿠키만으로 Redis key를 찾기 위한 식별값이고, tokenId와 secret은 조회 키와 소유 증명값으로 분리한다.
         // Redis에는 원본 토큰을 저장하지 않고 secret hash만 저장한다.
-        String rawToken = tokenId + "." + secret;
+        String rawToken = userId + "." + tokenId + "." + secret;
 
         return RefreshTokenValue.builder()
                 .userId(userId)
@@ -42,16 +42,21 @@ public class RefreshTokenFactory {
             return null;
         }
 
-        String[] parts = rawToken.split("\\.", 2);
+        String[] parts = rawToken.split("\\.", 3);
 
-        if (parts.length != 2 || parts[0].isBlank() || parts[1].isBlank()) {
+        if (parts.length != 3 || parts[0].isBlank() || parts[1].isBlank() || parts[2].isBlank()) {
             return null;
         }
 
-        return RefreshTokenParts.builder()
-                .tokenId(parts[0])
-                .secret(parts[1])
-                .build();
+        try {
+            return RefreshTokenParts.builder()
+                    .userId(Long.parseLong(parts[0]))
+                    .tokenId(parts[1])
+                    .secret(parts[2])
+                    .build();
+        } catch (NumberFormatException exception) {
+            return null;
+        }
     }
 
     public String hash(String value) {

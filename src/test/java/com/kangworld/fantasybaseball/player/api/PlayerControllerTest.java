@@ -1,5 +1,7 @@
 package com.kangworld.fantasybaseball.player.api;
 
+import static com.kangworld.fantasybaseball.support.AuthTestCookies.accessTokenCookie;
+import static com.kangworld.fantasybaseball.support.AuthTestCookies.trustedOrigin;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -72,7 +74,7 @@ class PlayerControllerTest {
 
         // when then
         mockMvc.perform(get("/api/players")
-                        .header("Authorization", "Bearer " + accessToken)
+                        .cookie(accessTokenCookie(accessToken)).with(trustedOrigin())
                         .param("playerType", "BATTER")
                         .param("keyword", "김"))
                 .andExpect(status().isOk())

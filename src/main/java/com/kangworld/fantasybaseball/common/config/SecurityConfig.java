@@ -17,6 +17,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import com.kangworld.fantasybaseball.auth.security.CookieOriginValidationFilter;
 import com.kangworld.fantasybaseball.auth.security.JwtAuthenticationFilter;
 import com.kangworld.fantasybaseball.common.api.ApiAuthenticationEntryPoint;
 
@@ -25,14 +26,17 @@ import com.kangworld.fantasybaseball.common.api.ApiAuthenticationEntryPoint;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CookieOriginValidationFilter cookieOriginValidationFilter;
     private final ApiAuthenticationEntryPoint apiAuthenticationEntryPoint;
     private final List<String> allowedOrigins;
 
     public SecurityConfig(
             JwtAuthenticationFilter jwtAuthenticationFilter,
+            CookieOriginValidationFilter cookieOriginValidationFilter,
             ApiAuthenticationEntryPoint apiAuthenticationEntryPoint,
             @Value("#{'${security.cors.allowed-origins}'.split(',')}") List<String> allowedOrigins) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.cookieOriginValidationFilter = cookieOriginValidationFilter;
         this.apiAuthenticationEntryPoint = apiAuthenticationEntryPoint;
         this.allowedOrigins = allowedOrigins;
     }
@@ -42,7 +46,7 @@ public class SecurityConfig {
         // 로컬 Vue 개발 서버에서 API를 직접 호출할 수 있도록 CORS preflight를 허용한다.
         http.cors(cors -> cors.configurationSource(corsConfigurationSource()));
 
-        // csrf는 브라우저 폼 기반 애플리케이션이 아니라 API 서버 기준이라 비활성화.
+        // 쿠키 요청은 별도 origin 검증 필터로 보호하고, Spring의 세션 기반 CSRF 토큰 저장소는 사용하지 않는다.
         http.csrf(AbstractHttpConfigurer::disable);
 
         // formLogin은 기본 로그인 페이지가 필요 없어서 비활성화.
@@ -54,8 +58,11 @@ public class SecurityConfig {
         // 세션을 쓰지 않고 매 요청마다 JWT로 인증을 확인하도록 stateless로 설정.
         http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
+        // 쿠키가 포함된 상태 변경 요청은 허용 origin인지 먼저 검증한다.
+        http.addFilterBefore(cookieOriginValidationFilter, UsernamePasswordAuthenticationFilter.class);
+
         // 인증이 필요한 API에 토큰 검증을 먼저 태우기 위해 JWT 필터를 추가.
-        http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        http.addFilterAfter(jwtAuthenticationFilter, CookieOriginValidationFilter.class);
 
         // 인증이 비어 있거나 토큰이 유효하지 않으면 API 공통 포맷으로 401을 반환.
         http.exceptionHandling(exception -> exception.authenticationEntryPoint(apiAuthenticationEntryPoint));
@@ -73,6 +80,7 @@ public class SecurityConfig {
                         "/api/members/signup/email-verification/confirm",
                         "/api/auth/login",
                         "/api/auth/refresh",
+                        "/api/auth/logout",
                         "/api/rosters/config",
                         "/api/ranks/daily",
                         "/api/ranks/season"
@@ -94,7 +102,7 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(allowedOrigins);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
-        configuration.setAllowCredentials(false);
+        configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", configuration);

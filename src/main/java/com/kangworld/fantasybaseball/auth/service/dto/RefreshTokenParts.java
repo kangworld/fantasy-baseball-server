@@ -7,6 +7,7 @@ import lombok.Getter;
 @Builder
 public class RefreshTokenParts {
 
+    private Long userId;
     private String tokenId;
     private String secret;
 

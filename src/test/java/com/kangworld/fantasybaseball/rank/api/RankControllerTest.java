@@ -1,5 +1,7 @@
 package com.kangworld.fantasybaseball.rank.api;
 
+import static com.kangworld.fantasybaseball.support.AuthTestCookies.accessTokenCookie;
+import static com.kangworld.fantasybaseball.support.AuthTestCookies.trustedOrigin;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -63,7 +65,7 @@ class RankControllerTest {
 
         // when then
         mockMvc.perform(get("/api/scoreboard/me")
-                        .header("Authorization", "Bearer " + accessToken)
+                        .cookie(accessTokenCookie(accessToken)).with(trustedOrigin())
                         .param("date", "2026-05-11"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.date").value("2026-05-11"))
