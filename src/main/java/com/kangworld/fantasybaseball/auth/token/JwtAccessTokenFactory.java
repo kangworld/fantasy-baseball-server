@@ -6,8 +6,9 @@ import java.util.Date;
 
 import javax.crypto.SecretKey;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+
+import com.kangworld.fantasybaseball.auth.config.AuthSecurityProperties;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -18,12 +19,9 @@ public class JwtAccessTokenFactory {
     private final SecretKey secretKey;
     private final long accessTokenExpirationSeconds;
 
-    public JwtAccessTokenFactory(
-            @Value("${security.jwt.secret}") String secret,
-            @Value("${security.jwt.access-token-expiration-seconds}") long accessTokenExpirationSeconds
-    ) {
-        this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-        this.accessTokenExpirationSeconds = accessTokenExpirationSeconds;
+    public JwtAccessTokenFactory(AuthSecurityProperties properties) {
+        this.secretKey = Keys.hmacShaKeyFor(properties.jwt().secret().getBytes(StandardCharsets.UTF_8));
+        this.accessTokenExpirationSeconds = properties.jwt().accessTokenExpirationSeconds();
     }
 
     public String create(Long userId, String role) {

@@ -5,9 +5,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseCookie;
 
+import com.kangworld.fantasybaseball.auth.config.AuthSecurityProperties;
+
 class AuthCookieFactoryTest {
 
-    private final AuthCookieFactory authCookieFactory = new AuthCookieFactory(true);
+    private final AuthCookieFactory authCookieFactory = new AuthCookieFactory(new AuthSecurityProperties(
+            new AuthSecurityProperties.Jwt("test-secret", 3600, 1209600),
+            new AuthSecurityProperties.AuthCookie(true),
+            new AuthSecurityProperties.Cors(java.util.List.of("http://localhost:5173"))));
 
     @Test
     void accessToken은_secure_HttpOnly_Lax_세션쿠키로_발급한다() {

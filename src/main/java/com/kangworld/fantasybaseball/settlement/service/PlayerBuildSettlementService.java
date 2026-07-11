@@ -11,7 +11,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.kangworld.fantasybaseball.common.time.FantasyTime;
 import com.kangworld.fantasybaseball.external.kbo.fetcher.KboPlayerProfileFetcher;
@@ -42,8 +41,8 @@ public class PlayerBuildSettlementService {
     private final KboPlayerProfileFetcher playerProfileFetcher;
     private final PlayerDao playerDao;
     private final FantasyTime fantasyTime;
+    private final SettlementTransactionExecutor transactionExecutor;
 
-    @Transactional
     public void settle(LocalDate targetDate) {
         List<KboGameRecord> gameRecords = scheduleFetchService.fetch(targetDate).stream()
                 .filter(this::isSettlementTarget)
@@ -51,7 +50,9 @@ public class PlayerBuildSettlementService {
                 .map(gameRecordFetchService::fetch)
                 .toList();
 
-        upsertAppearedPlayers(targetDate.getYear(), gameRecords);
+        // KBO 일정, 기록, 선수 프로필 호출을 모두 끝낸 뒤 DB 쓰기만 트랜잭션으로 실행한다.
+        List<Player> players = buildAppearedPlayers(targetDate.getYear(), gameRecords);
+        transactionExecutor.execute(() -> playerDao.upsertAll(players));
     }
 
     private boolean isSettlementTarget(KboScheduleGame game) {
@@ -60,7 +61,7 @@ public class PlayerBuildSettlementService {
         return status == KboGameStatus.FINISHED || status == KboGameStatus.SUSPENDED;
     }
 
-    private void upsertAppearedPlayers(int season, List<KboGameRecord> gameRecords) {
+    private List<Player> buildAppearedPlayers(int season, List<KboGameRecord> gameRecords) {
         LocalDateTime now = fantasyTime.getDateTime();
         Map<Long, PlayerAppearance> appearanceByPlayerId = gameRecords.stream()
                 .flatMap(gameRecord -> toAppearances(season, gameRecord))
@@ -71,11 +72,9 @@ public class PlayerBuildSettlementService {
                         (existing, ignored) -> existing
                 ));
 
-        List<Player> players = appearanceByPlayerId.values().stream()
+        return appearanceByPlayerId.values().stream()
                 .map(appearance -> toPlayer(appearance, now))
                 .toList();
-
-        playerDao.upsertAll(players);
     }
 
     private Stream<PlayerAppearance> toAppearances(int season, KboGameRecord gameRecord) {

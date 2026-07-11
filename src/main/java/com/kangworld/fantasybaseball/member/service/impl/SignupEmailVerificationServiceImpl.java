@@ -3,17 +3,14 @@ package com.kangworld.fantasybaseball.member.service.impl;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.kangworld.fantasybaseball.common.time.FantasyTime;
-import com.kangworld.fantasybaseball.member.dao.MemberDao;
+import com.kangworld.fantasybaseball.member.config.MemberProperties;
 import com.kangworld.fantasybaseball.member.dao.SignupEmailVerificationDao;
-import com.kangworld.fantasybaseball.member.exception.MemberEmailAlreadyExistsException;
 import com.kangworld.fantasybaseball.member.exception.SignupEmailVerificationRequiredException;
 import com.kangworld.fantasybaseball.member.mail.MemberMailSender;
 import com.kangworld.fantasybaseball.member.model.SignupEmailVerification;
@@ -31,46 +28,25 @@ public class SignupEmailVerificationServiceImpl implements SignupEmailVerificati
     private static final int CODE_BOUND = 1_000_000;
 
     private final SecureRandom secureRandom = new SecureRandom();
-    private final MemberDao memberDao;
     private final SignupEmailVerificationDao signupEmailVerificationDao;
     private final PasswordEncoder passwordEncoder;
     private final MemberMailSender memberMailSender;
     private final FantasyTime fantasyTime;
-
-    @Value("${member.signup.email-verification.code-expiration-minutes}")
-    private long codeExpirationMinutes;
-
-    @Value("${member.signup.email-verification.verified-expiration-minutes}")
-    private long verifiedExpirationMinutes;
+    private final SignupEmailVerificationPersistenceService persistenceService;
+    private final MemberProperties memberProperties;
 
     @Override
-    @Transactional
     @RedisLock(name = "signup-email-verification", key = "#request.email")
     public void send(SignupEmailVerificationSendRequest request) {
-        if (memberDao.findByEmail(request.getEmail()).isPresent())
-            throw new MemberEmailAlreadyExistsException();
-
         LocalDateTime now = fantasyTime.getDateTime();
         String code = createCode();
         String codeHash = hash(code);
-        LocalDateTime codeExpiresAt = now.plus(Duration.ofMinutes(codeExpirationMinutes));
+        long expirationMinutes = memberProperties.signup().emailVerification().codeExpirationMinutes();
+        LocalDateTime codeExpiresAt = now.plus(Duration.ofMinutes(expirationMinutes));
 
-        // 같은 이메일의 진행 중 인증은 하나만 둔다. 재전송은 이전 인증번호와 인증 완료 상태를 무효화한다.
-        Optional<SignupEmailVerification> verification = signupEmailVerificationDao.findActiveByEmail(request.getEmail(), now);
-        if (verification.isEmpty()) {
-            signupEmailVerificationDao.insert(request.getEmail(), codeHash, codeExpiresAt, now);
-        } else {
-            int updatedCount = signupEmailVerificationDao.updateCode(
-                    verification.get().getSignupEmailVerificationId(),
-                    codeHash,
-                    codeExpiresAt,
-                    now
-            );
-
-            if (updatedCount == 0)
-                throw new SignupEmailVerificationRequiredException();
-        }
-
+        // SMTP 지연 동안 DB 트랜잭션을 점유하지 않도록 인증번호 저장을 먼저 커밋한다.
+        persistenceService.saveCode(request.getEmail(), codeHash, codeExpiresAt, now);
+        // 발송 실패 후 재요청하면 동일 이메일의 저장된 인증번호를 새 코드로 교체한다.
         memberMailSender.sendSignupVerificationCode(request.getEmail(), code);
     }
 
@@ -87,7 +63,8 @@ public class SignupEmailVerificationServiceImpl implements SignupEmailVerificati
         int updatedCount = signupEmailVerificationDao.verify(
                 verification.getSignupEmailVerificationId(),
                 now,
-                now.plus(Duration.ofMinutes(verifiedExpirationMinutes))
+                now.plus(Duration.ofMinutes(
+                        memberProperties.signup().emailVerification().verifiedExpirationMinutes()))
         );
 
         if (updatedCount == 0)

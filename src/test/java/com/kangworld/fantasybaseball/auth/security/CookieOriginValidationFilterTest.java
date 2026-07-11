@@ -13,6 +13,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kangworld.fantasybaseball.auth.config.AuthSecurityProperties;
 import com.kangworld.fantasybaseball.auth.cookie.AuthCookieFactory;
 
 import jakarta.servlet.FilterChain;
@@ -22,7 +23,10 @@ class CookieOriginValidationFilterTest {
 
     private final CookieOriginValidationFilter filter = new CookieOriginValidationFilter(
             new ObjectMapper(),
-            List.of("http://localhost:5173")
+            new AuthSecurityProperties(
+                    new AuthSecurityProperties.Jwt("test-secret", 3600, 1209600),
+                    new AuthSecurityProperties.AuthCookie(true),
+                    new AuthSecurityProperties.Cors(List.of("http://localhost:5173")))
     );
 
     @Test

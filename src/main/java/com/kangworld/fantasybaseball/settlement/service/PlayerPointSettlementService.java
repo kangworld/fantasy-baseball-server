@@ -12,7 +12,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.kangworld.fantasybaseball.common.date.DateIds;
 import com.kangworld.fantasybaseball.common.time.FantasyTime;
@@ -52,8 +51,8 @@ public class PlayerPointSettlementService {
     private final PlayerGameRecordMapper playerGameRecordMapper;
     private final PointCalculator pointCalculator;
     private final FantasyTime fantasyTime;
+    private final SettlementTransactionExecutor transactionExecutor;
 
-    @Transactional
     public void settle(LocalDate settlementDate, LocalDate gameDate) {
         // 정산은 완료 또는 서스펜디드 경기만 확정 데이터로 보고, 진행 중 경기는 실시간 조회에만 사용한다.
         List<KboGameRecord> gameRecords = scheduleFetchService.fetch(gameDate).stream()
@@ -62,7 +61,8 @@ public class PlayerPointSettlementService {
                 .map(gameRecordFetchService::fetch)
                 .toList();
 
-        applyGameRecords(settlementDate, gameRecords);
+        // 외부 KBO 응답을 확정한 뒤 포인트와 프로필 DB 변경만 하나의 트랜잭션으로 묶는다.
+        transactionExecutor.execute(() -> applyGameRecords(settlementDate, gameRecords));
     }
 
     private boolean isSettlementTarget(KboScheduleGame game) {

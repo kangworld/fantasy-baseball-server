@@ -6,9 +6,9 @@ import java.time.Duration;
 import java.util.Base64;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import com.kangworld.fantasybaseball.auth.config.AuthSecurityProperties;
 import com.kangworld.fantasybaseball.auth.service.dto.RefreshTokenParts;
 import com.kangworld.fantasybaseball.auth.service.dto.RefreshTokenValue;
 
@@ -17,8 +17,8 @@ public class RefreshTokenFactory {
 
     private final long refreshTokenExpirationSeconds;
 
-    public RefreshTokenFactory(@Value("${security.jwt.refresh-token-expiration-seconds}") long refreshTokenExpirationSeconds) {
-        this.refreshTokenExpirationSeconds = refreshTokenExpirationSeconds;
+    public RefreshTokenFactory(AuthSecurityProperties properties) {
+        this.refreshTokenExpirationSeconds = properties.jwt().refreshTokenExpirationSeconds();
     }
 
     public RefreshTokenValue create(Long userId) {

@@ -15,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.kangworld.fantasybaseball.common.time.FantasyTime;
@@ -50,6 +51,9 @@ class PlayerBuildSettlementServiceTest {
 
     @Mock
     private FantasyTime fantasyTime;
+
+    @Spy
+    private SettlementTransactionExecutor transactionExecutor = new SettlementTransactionExecutor();
 
     @InjectMocks
     private PlayerBuildSettlementService playerBuildSettlementService;

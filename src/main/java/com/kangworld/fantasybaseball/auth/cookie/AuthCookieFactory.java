@@ -2,9 +2,10 @@ package com.kangworld.fantasybaseball.auth.cookie;
 
 import java.time.Duration;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
+
+import com.kangworld.fantasybaseball.auth.config.AuthSecurityProperties;
 
 @Component
 public class AuthCookieFactory {
@@ -18,8 +19,8 @@ public class AuthCookieFactory {
 
     private final boolean secure;
 
-    public AuthCookieFactory(@Value("${security.auth-cookie.secure:false}") boolean secure) {
-        this.secure = secure;
+    public AuthCookieFactory(AuthSecurityProperties properties) {
+        this.secure = properties.authCookie().secure();
     }
 
     public ResponseCookie createAccessTokenCookie(String accessToken) {

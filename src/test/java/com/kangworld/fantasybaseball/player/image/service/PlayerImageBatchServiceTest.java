@@ -43,6 +43,9 @@ class PlayerImageBatchServiceTest {
     @Mock
     private AssetStorage assetStorage;
 
+    @Mock
+    private PlayerImagePersistenceService persistenceService;
+
     private PlayerImageBatchService playerImageBatchService;
 
     @BeforeEach
@@ -52,7 +55,8 @@ class PlayerImageBatchServiceTest {
                 playerImageDao,
                 kboPlayerImageFetcher,
                 assetStorage,
-                fantasyTime);
+                fantasyTime,
+                persistenceService);
     }
 
     @Test
@@ -70,7 +74,7 @@ class PlayerImageBatchServiceTest {
         // then
         verify(assetStorage).upload("player/100.jpg", imageFile);
         ArgumentCaptor<PlayerImage> captor = ArgumentCaptor.forClass(PlayerImage.class);
-        verify(playerImageDao).upsert(captor.capture());
+        verify(persistenceService).upsert(captor.capture());
         org.assertj.core.api.Assertions.assertThat(captor.getValue().getImgPath())
                 .isEqualTo("player/100.jpg");
     }
@@ -93,7 +97,7 @@ class PlayerImageBatchServiceTest {
 
         // then
         verify(assetStorage, never()).upload(any(), any());
-        verify(playerImageDao, never()).upsert(any());
+        verify(persistenceService, never()).upsert(any());
     }
 
     @Test
@@ -108,7 +112,7 @@ class PlayerImageBatchServiceTest {
 
         // then
         verify(assetStorage, never()).upload(any(), any());
-        verify(playerImageDao, never()).upsert(any());
+        verify(persistenceService, never()).upsert(any());
     }
 
     @Test
@@ -123,7 +127,7 @@ class PlayerImageBatchServiceTest {
         // then
         verify(kboPlayerImageFetcher, never()).fetch(anyLong(), anyInt());
         verify(assetStorage, never()).upload(any(), any());
-        verify(playerImageDao, never()).upsert(any());
+        verify(persistenceService, never()).upsert(any());
     }
 
     private AssetFile imageFile(byte[] bytes) {

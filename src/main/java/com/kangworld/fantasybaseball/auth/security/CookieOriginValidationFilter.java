@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -14,6 +13,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.WebUtils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kangworld.fantasybaseball.auth.config.AuthSecurityProperties;
 import com.kangworld.fantasybaseball.auth.cookie.AuthCookieFactory;
 import com.kangworld.fantasybaseball.common.api.ApiResponse;
 
@@ -30,12 +30,10 @@ public class CookieOriginValidationFilter extends OncePerRequestFilter {
 
     public CookieOriginValidationFilter(
             ObjectMapper objectMapper,
-            @Value("#{'${security.cors.allowed-origins}'.split(',')}") List<String> allowedOrigins
+            AuthSecurityProperties properties
     ) {
         this.objectMapper = objectMapper;
-        this.allowedOrigins = allowedOrigins.stream()
-                .map(String::trim)
-                .toList();
+        this.allowedOrigins = properties.cors().allowedOrigins();
     }
 
     @Override

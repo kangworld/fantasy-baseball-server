@@ -2,7 +2,7 @@ package com.kangworld.fantasybaseball.common.config;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -17,12 +17,14 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import com.kangworld.fantasybaseball.auth.config.AuthSecurityProperties;
 import com.kangworld.fantasybaseball.auth.security.CookieOriginValidationFilter;
 import com.kangworld.fantasybaseball.auth.security.JwtAuthenticationFilter;
 import com.kangworld.fantasybaseball.common.api.ApiAuthenticationEntryPoint;
 
 @Configuration
 @EnableMethodSecurity
+@EnableConfigurationProperties(AuthSecurityProperties.class)
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -34,11 +36,11 @@ public class SecurityConfig {
             JwtAuthenticationFilter jwtAuthenticationFilter,
             CookieOriginValidationFilter cookieOriginValidationFilter,
             ApiAuthenticationEntryPoint apiAuthenticationEntryPoint,
-            @Value("#{'${security.cors.allowed-origins}'.split(',')}") List<String> allowedOrigins) {
+            AuthSecurityProperties properties) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.cookieOriginValidationFilter = cookieOriginValidationFilter;
         this.apiAuthenticationEntryPoint = apiAuthenticationEntryPoint;
-        this.allowedOrigins = allowedOrigins;
+        this.allowedOrigins = properties.cors().allowedOrigins();
     }
 
     @Bean

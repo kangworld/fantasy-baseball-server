@@ -5,9 +5,9 @@ import java.util.Optional;
 
 import javax.crypto.SecretKey;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import com.kangworld.fantasybaseball.auth.config.AuthSecurityProperties;
 import com.kangworld.fantasybaseball.auth.security.AuthenticatedMember;
 
 import io.jsonwebtoken.Claims;
@@ -20,8 +20,8 @@ public class JwtAccessTokenParser {
 
     private final SecretKey secretKey;
 
-    public JwtAccessTokenParser(@Value("${security.jwt.secret}") String secret) {
-        this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+    public JwtAccessTokenParser(AuthSecurityProperties properties) {
+        this.secretKey = Keys.hmacShaKeyFor(properties.jwt().secret().getBytes(StandardCharsets.UTF_8));
     }
 
     public Optional<AuthenticatedMember> parse(String accessToken) {

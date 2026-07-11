@@ -6,7 +6,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.kangworld.fantasybaseball.asset.storage.AssetFile;
 import com.kangworld.fantasybaseball.asset.storage.AssetStorage;
@@ -28,8 +27,8 @@ public class PlayerImageBatchService {
     private final KboPlayerImageFetcher kboPlayerImageFetcher;
     private final AssetStorage assetStorage;
     private final FantasyTime fantasyTime;
+    private final PlayerImagePersistenceService persistenceService;
 
-    @Transactional
     public void refresh(LocalDate targetDate) {
         // 이미지 배치는 점수 profile이 아니라 player 기준으로 신규/팀 변경 선수를 찾는다.
         // player.team_updated_at은 팀 코드가 실제 변경된 경우에만 갱신되므로 이미지 재확인 기준으로 사용한다.
@@ -56,10 +55,10 @@ public class PlayerImageBatchService {
                 && hasSameBytes(savedImage.getImgPath(), imageFile.bytes()))
             return;
 
-        // S3 업로드가 성공한 뒤 DB를 갱신한다. 현재 트랜잭션은 DB 변경 경계를 유지하고, S3 보상 처리는 별도 운영 과제로 둔다.
+        // 외부 저장소 업로드가 성공한 뒤 짧은 DB 트랜잭션으로 경로만 반영한다.
         assetStorage.upload(imgPath, imageFile);
         LocalDateTime now = fantasyTime.getDateTime();
-        playerImageDao.upsert(PlayerImage.builder()
+        persistenceService.upsert(PlayerImage.builder()
                 .playerId(playerId)
                 .imgPath(imgPath)
                 .createdAt(now)
