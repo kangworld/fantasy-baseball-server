@@ -81,6 +81,7 @@ public class SecurityConfig {
                         "/api/auth/login",
                         "/api/auth/refresh",
                         "/api/auth/logout",
+                        "/api/point-rules",
                         "/api/rosters/config",
                         "/api/ranks/daily",
                         "/api/ranks/season"
