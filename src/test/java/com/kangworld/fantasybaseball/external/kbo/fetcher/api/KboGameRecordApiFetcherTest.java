@@ -5,129 +5,86 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
 import com.kangworld.fantasybaseball.external.kbo.model.KboGameRecord;
+import com.kangworld.fantasybaseball.external.kbo.model.KboGameStatus;
 import com.kangworld.fantasybaseball.external.kbo.model.KboGameStatusMapper;
 import com.kangworld.fantasybaseball.player.model.PlayerPosition;
 
 class KboGameRecordApiFetcherTest {
 
     @Test
-    void fetch는_recordData_타자_투수_박스스코어를_역직렬화한다() {
-        // given
+    void fetch는_실제_record_응답을_내부_경기기록으로_변환한다() {
         RestClient.Builder builder = RestClient.builder()
                 .baseUrl("https://example.test");
         MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
         KboGameRecordApiFetcher fetcher = new KboGameRecordApiFetcher(builder.build(), new KboGameStatusMapper());
 
-        server.expect(requestTo("https://example.test/schedule/games/20260606KTSK02026/record"))
-                .andRespond(withSuccess("""
-                        {
-                          "result": {
-                            "recordData": {
-                              "gameInfo": {
-                                "statusCode": "RESULT",
-                                "aCode": "KT",
-                                "hCode": "SK"
-                              },
-                              "battersBoxscore": {
-                                "away": [
-                                  {
-                                    "playerCode": "76290",
-                                    "name": "김현수",
-                                    "pos": "좌",
-                                    "ab": 4,
-                                    "hit": 2,
-                                    "rbi": 1,
-                                    "run": 1,
-                                    "bb": 0,
-                                    "kk": 1,
-                                    "hr": 1,
-                                    "sb": 0,
-                                    "inn1": "좌안",
-                                    "inn3": "우홈"
-                                  }
-                                ],
-                                "home": []
-                              },
-                              "pitchersBoxscore": {
-                                "away": [],
-                                "home": [
-                                  {
-                                    "pcode": "63492",
-                                    "name": "김광현",
-                                    "inn": "6",
-                                    "hit": 3,
-                                    "r": 1,
-                                    "er": 1,
-                                    "bb": 1,
-                                    "bbhp": 1,
-                                    "kk": 5,
-                                    "hr": 0,
-                                    "bf": 90,
-                                    "wls": "승"
-                                  }
-                                ]
-                              },
-                              "etcRecords": [
-                                {
-                                  "how": "홈런",
-                                  "result": "김현수(3회1점)"
-                                }
-                              ]
-                            }
-                          }
-                        }
-                        """, MediaType.APPLICATION_JSON));
+        server.expect(requestTo("https://example.test/schedule/games/20240421KTLT12024/record"))
+                .andRespond(withSuccess(
+                        KboResponseFixtures.json("game-record-20240421KTLT12024.json"),
+                        MediaType.APPLICATION_JSON
+                ));
 
-        // when
-        KboGameRecord record = fetcher.fetch("20260606KTSK02026");
+        KboGameRecord record = fetcher.fetch("20240421KTLT12024");
 
-        // then
-        // record API의 gameInfo에는 gameId가 없으므로 요청 gameId가 결과 모델에 보존되어야 한다.
-        assertThat(record.getGameId()).isEqualTo("20260606KTSK02026");
-        assertThat(record.getBatterRecords()).singleElement()
+        // record 응답의 gameInfo에는 gameId가 없으므로 요청 경로의 값을 내부 모델에 보존한다.
+        assertThat(record.getGameId()).isEqualTo("20240421KTLT12024");
+        assertThat(record.getStatus()).isEqualTo(KboGameStatus.FINISHED);
+        assertThat(record.getBatterRecords())
+                .filteredOn(batter -> "50054".equals(batter.getPlayerCode()))
+                .singleElement()
                 .satisfies(batter -> {
-                    assertThat(batter.getPlayerCode()).isEqualTo("76290");
+                    assertThat(batter.getName()).isEqualTo("천성호");
                     assertThat(batter.getTeamCode()).isEqualTo("KT");
-                    assertThat(batter.getPosition()).isEqualTo(PlayerPosition.LF);
-                    assertThat(batter.getPaResults()).containsExactly("좌안", "우홈");
+                    assertThat(batter.getPosition()).isEqualTo(PlayerPosition.B2);
+                    assertThat(batter.getPaResults())
+                            .containsExactly("우비", "우2", "삼진", "좌안", "우비");
                 });
-        assertThat(record.getPitcherRecords()).singleElement()
-                .satisfies(pitcher -> {
-                    assertThat(pitcher.getPlayerCode()).isEqualTo("63492");
-                    assertThat(pitcher.getTeamCode()).isEqualTo("SK");
-                    assertThat(pitcher.getInn()).isEqualTo("6");
+        assertThat(record.getBatterRecords())
+                .filteredOn(batter -> "50150".equals(batter.getPlayerCode()))
+                .singleElement()
+                .satisfies(batter -> assertThat(batter.getPosition()).isEqualTo(PlayerPosition.B3));
+        assertThat(record.getBatterRecords())
+                .filteredOn(batter -> "67006".equals(batter.getPlayerCode()))
+                .singleElement()
+                .satisfies(batter -> {
+                    assertThat(batter.getPos()).isEqualTo("교");
+                    assertThat(batter.getPosition()).isEqualTo(PlayerPosition.DH);
                 });
+        assertThat(record.getPitcherRecords())
+                .extracting(pitcher -> pitcher.getTeamCode() + ":" + pitcher.getPlayerCode())
+                .containsExactly("KT:69032", "LT:53546");
         assertThat(record.getEtcRecords()).singleElement()
                 .satisfies(etc -> assertThat(etc.getHow()).isEqualTo("홈런"));
         server.verify();
     }
 
     @Test
-    @EnabledIfSystemProperty(named = "external.kbo.live-test", matches = "true")
-    void fetch는_실제_SSHT_record_API에서_성영탁_투수명을_매핑한다() {
-        // 외부 API 스펙 확인용 테스트다. 평소 테스트에서는 제외하고, 필요할 때만 system property로 명시 실행한다.
-        KboGameRecordApiFetcher fetcher = new KboGameRecordApiFetcher(
-                RestClient.builder()
-                        .baseUrl("https://api-gw.sports.naver.com")
-                        .build(),
-                new KboGameStatusMapper());
+    void fetch는_record_선수명이_null이어도_나머지_필드를_변환한다() {
+        RestClient.Builder builder = RestClient.builder()
+                .baseUrl("https://example.test");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        KboGameRecordApiFetcher fetcher = new KboGameRecordApiFetcher(builder.build(), new KboGameStatusMapper());
+        String response = KboResponseFixtures.json("game-record-20240421KTLT12024.json")
+                .replace("\"name\": \"안치영\"", "\"name\": null");
 
-        KboGameRecord record = fetcher.fetch("20260606SSHT02026");
+        server.expect(requestTo("https://example.test/schedule/games/20240421KTLT12024/record"))
+                .andRespond(withSuccess(response, MediaType.APPLICATION_JSON));
 
-        assertThat(record.getGameId()).isEqualTo("20260606SSHT02026");
-        assertThat(record.getPitcherRecords())
-                .filteredOn(pitcher -> "54610".equals(pitcher.getPlayerCode()))
+        KboGameRecord record = fetcher.fetch("20240421KTLT12024");
+
+        assertThat(record.getBatterRecords())
+                .filteredOn(batter -> "67006".equals(batter.getPlayerCode()))
                 .singleElement()
-                .satisfies(pitcher -> {
-                    assertThat(pitcher.getName()).isEqualTo("성영탁");
-                    assertThat(pitcher.getTeamCode()).isEqualTo("HT");
+                .satisfies(batter -> {
+                    assertThat(batter.getName()).isNull();
+                    assertThat(batter.getPosition()).isEqualTo(PlayerPosition.DH);
                 });
+        server.verify();
     }
 
 }

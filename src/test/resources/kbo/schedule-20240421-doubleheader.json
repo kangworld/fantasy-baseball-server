@@ -1,0 +1,52 @@
+{
+  "code": 200,
+  "success": true,
+  "result": {
+    "games": [
+      {
+        "gameId": "20240421KTLT12024",
+        "categoryId": "kbo",
+        "gameDateTime": "2024-04-21T14:00:00",
+        "homeTeamCode": "LT",
+        "homeTeamName": "롯데",
+        "awayTeamCode": "KT",
+        "awayTeamName": "KT",
+        "statusCode": "RESULT",
+        "statusInfo": "9회말",
+        "cancel": false,
+        "suspended": false,
+        "seriesGameNo": 0,
+        "roundGameNo": 0
+      },
+      {
+        "gameId": "20240421LGSK12024",
+        "categoryId": "kbo",
+        "gameDateTime": "2024-04-21T14:00:00",
+        "homeTeamCode": "SK",
+        "homeTeamName": "SSG",
+        "awayTeamCode": "LG",
+        "awayTeamName": "LG",
+        "statusCode": "RESULT",
+        "statusInfo": "9회말",
+        "cancel": false,
+        "suspended": false
+      },
+      {
+        "gameId": "20240421KTLT22024",
+        "categoryId": "kbo",
+        "gameDateTime": "2024-04-21T17:49:00",
+        "homeTeamCode": "LT",
+        "homeTeamName": "롯데",
+        "awayTeamCode": "KT",
+        "awayTeamName": "KT",
+        "statusCode": "RESULT",
+        "statusInfo": "9회말",
+        "cancel": false,
+        "suspended": false,
+        "seriesGameNo": 0,
+        "roundGameNo": 0
+      }
+    ],
+    "gameTotalCount": 8
+  }
+}

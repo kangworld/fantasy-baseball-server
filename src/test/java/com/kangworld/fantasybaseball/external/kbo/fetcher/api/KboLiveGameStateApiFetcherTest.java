@@ -16,41 +16,29 @@ import com.kangworld.fantasybaseball.external.kbo.model.KboLiveGameState;
 class KboLiveGameStateApiFetcherTest {
 
     @Test
-    void fetch는_polling_READY_상태값을_보존하고_READY로_매핑한다() {
-        // given
+    void fetch는_대타와_대주자_중계가_포함된_실제_polling_응답에서_경기상태를_변환한다() {
         RestClient.Builder builder = RestClient.builder()
                 .baseUrl("https://example.test");
         MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
-        KboLiveGameStateApiFetcher fetcher = new KboLiveGameStateApiFetcher(builder.build(), new KboGameStatusMapper());
+        KboLiveGameStateApiFetcher fetcher = new KboLiveGameStateApiFetcher(
+                builder.build(),
+                new KboGameStatusMapper()
+        );
 
-        server.expect(requestTo("https://example.test/schedule/games/20260512HHWO02026/game-polling"))
-                .andRespond(withSuccess("""
-                        {
-                          "result": {
-                            "game": {
-                              "gameId": "20260512HHWO02026",
-                              "statusCode": "READY",
-                              "statusInfo": "경기전",
-                              "currentInning": "1회초",
-                              "homeTeamScore": 0,
-                              "awayTeamScore": 0,
-                              "homeTeamCode": "WO",
-                              "awayTeamCode": "HH",
-                              "cancel": false,
-                              "suspended": false
-                            }
-                          }
-                        }
-                        """, MediaType.APPLICATION_JSON));
+        String response = KboResponseFixtures.json("game-polling-20260426KTSK02026.json");
+        assertThat(response).contains("\"posName\": \"대타\"", "\"posName\": \"대주자\"");
+        server.expect(requestTo("https://example.test/schedule/games/20260426KTSK02026/game-polling"))
+                .andRespond(withSuccess(response, MediaType.APPLICATION_JSON));
 
-        // when
-        KboLiveGameState state = fetcher.fetch("20260512HHWO02026");
+        KboLiveGameState state = fetcher.fetch("20260426KTSK02026");
 
-        // then
-        assertThat(state.getStatus()).isEqualTo(KboGameStatus.READY);
-        assertThat(state.getStatusCode()).isEqualTo("READY");
-        assertThat(state.getStatusInfo()).isEqualTo("경기전");
-        assertThat(state.getCurrentInning()).isEqualTo("1회초");
+        assertThat(state.getGameId()).isEqualTo("20260426KTSK02026");
+        assertThat(state.getStatus()).isEqualTo(KboGameStatus.FINISHED);
+        assertThat(state.getStatusCode()).isEqualTo("RESULT");
+        assertThat(state.getStatusInfo()).isEqualTo("9회말");
+        assertThat(state.getCurrentInning()).isEqualTo("9회말");
+        assertThat(state.getAwayTeamScore()).isEqualTo(12);
+        assertThat(state.getHomeTeamScore()).isEqualTo(2);
         server.verify();
     }
 

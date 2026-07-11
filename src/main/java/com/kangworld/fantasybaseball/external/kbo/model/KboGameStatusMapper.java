@@ -8,9 +8,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class KboGameStatusMapper {
 
-    private static final Set<String> READY_CODES = Set.of("BEFORE", "READY");
-    private static final Set<String> PLAYING_CODES = Set.of("STARTED");
-    private static final Set<String> FINISHED_CODES = Set.of("RESULT");
+    private static final Set<String> READY_CODES = Set.of("1", "BEFORE", "READY");
+    private static final Set<String> PLAYING_CODES = Set.of("2", "STARTED");
+    private static final Set<String> FINISHED_CODES = Set.of("4", "RESULT");
 
     public KboGameStatus map(String statusCode, boolean canceled, boolean suspended) {
         // cancel, suspended 플래그가 있으면 외부 statusCode보다 우선 적용.

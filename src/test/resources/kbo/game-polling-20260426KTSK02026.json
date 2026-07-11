@@ -1,0 +1,47 @@
+{
+  "code": 200,
+  "success": true,
+  "result": {
+    "game": {
+      "gameId": "20260426KTSK02026",
+      "gameDateTime": "2026-04-26T14:00:00",
+      "stadium": "문학",
+      "homeTeamCode": "SK",
+      "homeTeamName": "SSG",
+      "homeTeamScore": 2,
+      "awayTeamCode": "KT",
+      "awayTeamName": "KT",
+      "awayTeamScore": 12,
+      "statusCode": "RESULT",
+      "statusInfo": "9회말",
+      "currentInning": "9회말",
+      "cancel": false,
+      "suspended": false
+    },
+    "textRelayData": {
+      "homeLineup": {
+        "batter": [
+          {
+            "playerCode": "62895",
+            "name": "한유섬",
+            "posName": "대타"
+          },
+          {
+            "playerCode": "63963",
+            "name": "최상민",
+            "posName": "대주자"
+          }
+        ]
+      },
+      "textRelays": [
+        {
+          "textOptions": [
+            {
+              "text": "5번타자 김재환 : 대타 한유섬 (으)로 교체"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

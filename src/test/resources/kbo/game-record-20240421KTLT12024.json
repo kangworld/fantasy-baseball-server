@@ -1,0 +1,112 @@
+{
+  "code": 200,
+  "success": true,
+  "result": {
+    "recordData": {
+      "gameInfo": {
+        "gdate": 20240421,
+        "gtime": "14:00",
+        "stadium": "사직",
+        "statusCode": "4",
+        "aCode": "KT",
+        "aName": "KT",
+        "hCode": "LT",
+        "hName": "롯데"
+      },
+      "battersBoxscore": {
+        "away": [
+          {
+            "playerCode": "50054",
+            "name": "천성호",
+            "pos": "二",
+            "ab": 5,
+            "hit": 2,
+            "rbi": 1,
+            "run": 2,
+            "bb": 0,
+            "kk": 1,
+            "hr": 0,
+            "sb": 0,
+            "inn1": "우비",
+            "inn3": "우2",
+            "inn5": "삼진",
+            "inn7": "좌안",
+            "inn8": "우비"
+          },
+          {
+            "playerCode": "67006",
+            "name": "안치영",
+            "pos": "교",
+            "ab": 0,
+            "hit": 0,
+            "rbi": 0,
+            "run": 1,
+            "bb": 0,
+            "kk": 0,
+            "hr": 0,
+            "sb": 0
+          }
+        ],
+        "home": [
+          {
+            "playerCode": "50150",
+            "name": "손호영",
+            "pos": "二三",
+            "ab": 5,
+            "hit": 2,
+            "rbi": 3,
+            "run": 1,
+            "bb": 0,
+            "kk": 0,
+            "hr": 1,
+            "sb": 0,
+            "inn2": "3땅",
+            "inn6": "좌2",
+            "inn7": "좌중홈",
+            "inn9": "유땅"
+          }
+        ]
+      },
+      "pitchersBoxscore": {
+        "away": [
+          {
+            "pcode": "69032",
+            "name": "육청명",
+            "inn": "5",
+            "hit": 8,
+            "r": 5,
+            "er": 5,
+            "bb": 1,
+            "bbhp": 1,
+            "kk": 2,
+            "hr": 2,
+            "bf": 82,
+            "wls": ""
+          }
+        ],
+        "home": [
+          {
+            "pcode": "53546",
+            "name": "박세웅",
+            "inn": "4",
+            "hit": 5,
+            "r": 4,
+            "er": 4,
+            "bb": 2,
+            "bbhp": 2,
+            "kk": 3,
+            "hr": 0,
+            "bf": 73,
+            "wls": ""
+          }
+        ]
+      },
+      "etcRecords": [
+        {
+          "how": "홈런",
+          "result": "황성빈(1회1점 육청명)"
+        }
+      ]
+    }
+  }
+}

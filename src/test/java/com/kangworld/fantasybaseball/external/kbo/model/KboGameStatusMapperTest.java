@@ -63,6 +63,13 @@ class KboGameStatusMapperTest {
     }
 
     @Test
+    void 숫자_상태코드는_실제_record_API_의미로_매핑한다() {
+        assertThat(mapper.map("1", false, false)).isEqualTo(KboGameStatus.READY);
+        assertThat(mapper.map("2", false, false)).isEqualTo(KboGameStatus.PLAYING);
+        assertThat(mapper.map("4", false, false)).isEqualTo(KboGameStatus.FINISHED);
+    }
+
+    @Test
     void 확인되지_않은_상태값은_UNKNOWN으로_매핑한다() {
         // given when
         KboGameStatus status = mapper.map("UNKNOWN_CODE", false, false);
