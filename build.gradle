@@ -50,6 +50,9 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:mysql'
     testRuntimeOnly 'com.h2database:h2'
     testCompileOnly 'org.projectlombok:lombok'
     testAnnotationProcessor 'org.projectlombok:lombok'
@@ -57,8 +60,24 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform {
-        excludeTags 'aws-integration'
+        excludeTags 'aws-integration', 'container'
     }
+    testLogging {
+        showStandardStreams = true
+    }
+}
+
+tasks.register('integrationTest', Test) {
+    group = 'verification'
+    description = 'Runs MySQL and Redis container integration tests.'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    shouldRunAfter test
+
+    useJUnitPlatform {
+        includeTags 'container'
+    }
+
     testLogging {
         showStandardStreams = true
     }
@@ -76,6 +95,10 @@ tasks.register('awsIntegrationTest', Test) {
     testLogging {
         showStandardStreams = true
     }
+}
+
+tasks.named('check') {
+    dependsOn integrationTest
 }
 
 tasks.withType(JavaCompile).configureEach {

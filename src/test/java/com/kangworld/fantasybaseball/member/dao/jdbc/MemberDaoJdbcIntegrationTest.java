@@ -7,19 +7,15 @@ import java.time.LocalDateTime;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.test.context.ActiveProfiles;
 
 import com.kangworld.fantasybaseball.member.model.Member;
 import com.kangworld.fantasybaseball.member.model.MemberRole;
 import com.kangworld.fantasybaseball.member.model.MemberStatus;
+import com.kangworld.fantasybaseball.support.MySqlContainerIntegrationTest;
 
-@JdbcTest
-@Import(MemberDaoJdbc.class)
-@ActiveProfiles("test")
-class MemberDaoJdbcTest {
+@MySqlContainerIntegrationTest
+class MemberDaoJdbcIntegrationTest {
 
     @Autowired
     private MemberDaoJdbc memberDaoJdbc;

@@ -8,9 +8,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.jdbc.Sql;
 
 import com.kangworld.fantasybaseball.common.date.DateIds;
@@ -19,15 +17,15 @@ import com.kangworld.fantasybaseball.player.model.PlayerPosition;
 import com.kangworld.fantasybaseball.player.model.PlayerSearchCondition;
 import com.kangworld.fantasybaseball.player.model.PlayerSummary;
 import com.kangworld.fantasybaseball.player.model.PlayerType;
+import com.kangworld.fantasybaseball.support.MySqlContainerIntegrationTest;
 
-@SpringBootTest
-@ActiveProfiles("test")
+@MySqlContainerIntegrationTest
 @Sql(statements = {
         "delete from player_image",
         "delete from player_profile",
         "delete from player"
 }, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
-class PlayerDaoJdbcTest {
+class PlayerDaoJdbcIntegrationTest {
 
     @Autowired
     private PlayerDao playerDao;

@@ -9,20 +9,18 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.jdbc.Sql;
 
 import com.kangworld.fantasybaseball.rank.dao.SeasonRankDao;
 import com.kangworld.fantasybaseball.rank.dao.view.SeasonRankView;
 import com.kangworld.fantasybaseball.rank.model.SeasonRank;
+import com.kangworld.fantasybaseball.support.MySqlContainerIntegrationTest;
 
-@SpringBootTest
-@ActiveProfiles("test")
+@MySqlContainerIntegrationTest
 @Sql(statements = {"delete from season_rank", "delete from member"}, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
-class SeasonRankDaoJdbcTest {
+class SeasonRankDaoJdbcIntegrationTest {
 
     @Autowired
     private SeasonRankDao seasonRankDao;

@@ -8,21 +8,19 @@ import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.jdbc.Sql;
 
 import com.kangworld.fantasybaseball.player.image.dao.PlayerImageDao;
 import com.kangworld.fantasybaseball.player.image.model.PlayerImage;
+import com.kangworld.fantasybaseball.support.MySqlContainerIntegrationTest;
 
-@SpringBootTest
-@ActiveProfiles("test")
+@MySqlContainerIntegrationTest
 @Sql(statements = {
         "delete from player_image",
         "delete from player_profile",
         "delete from player"
 }, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
-class PlayerImageDaoJdbcTest {
+class PlayerImageDaoJdbcIntegrationTest {
 
     @Autowired
     private PlayerImageDao playerImageDao;

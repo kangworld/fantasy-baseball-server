@@ -9,21 +9,19 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.jdbc.Sql;
 
 import com.kangworld.fantasybaseball.roster.dao.RosterDao;
 import com.kangworld.fantasybaseball.roster.model.Roster;
+import com.kangworld.fantasybaseball.support.MySqlContainerIntegrationTest;
 
-@SpringBootTest
-@ActiveProfiles("test")
+@MySqlContainerIntegrationTest
 @Sql(statements = {
         "delete from roster_player",
         "delete from roster"
 }, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
-class RosterDaoJdbcTest {
+class RosterDaoJdbcIntegrationTest {
 
     @Autowired
     private RosterDao rosterDao;

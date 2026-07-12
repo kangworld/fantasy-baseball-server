@@ -8,9 +8,7 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.jdbc.Sql;
 
 import com.kangworld.fantasybaseball.settlement.dao.SettlementExecutionDao;
@@ -18,14 +16,14 @@ import com.kangworld.fantasybaseball.settlement.dao.SettlementStepExecutionDao;
 import com.kangworld.fantasybaseball.settlement.model.SettlementExecution;
 import com.kangworld.fantasybaseball.settlement.model.SettlementExecutionStatus;
 import com.kangworld.fantasybaseball.settlement.model.SettlementStepName;
+import com.kangworld.fantasybaseball.support.MySqlContainerIntegrationTest;
 
-@SpringBootTest
-@ActiveProfiles("test")
+@MySqlContainerIntegrationTest
 @Sql(statements = {
         "delete from settlement_step_execution",
         "delete from settlement_execution"
 }, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
-class SettlementExecutionDaoJdbcTest {
+class SettlementExecutionDaoJdbcIntegrationTest {
 
     @Autowired
     private SettlementExecutionDao settlementExecutionDao;
