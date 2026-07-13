@@ -23,9 +23,20 @@
 
 ## 실행 방법
 
-1. `docker-compose -f docker-compose.local.yml up -d` 실행
-2. `./gradlew bootRun --args='--spring.profiles.active=local'` 실행
-3. `GET /api/health` 호출로 상태 확인
+Spring 프로파일은 `local`, `prod` 두 개만 사용합니다.
+
+전체 로컬 환경을 Docker로 실행:
+
+```shell
+docker compose -f docker-compose.local.yml up --build
+```
+
+애플리케이션은 IDE/Gradle로 실행하고 MySQL과 Redis만 Docker로 실행:
+
+```shell
+docker compose -f docker-compose.local.yml up -d mysql redis
+./gradlew bootRun --args='--spring.profiles.active=local'
+```
 
 ## 테스트 실행
 

@@ -3,8 +3,27 @@ spring:
     import: "aws-parameterstore:/fantasy-baseball/prod/"
   cloud:
     aws:
+      credentials:
+        instance-profile: true
       parameterstore:
         enabled: true
         region: ap-northeast-2
       region:
         static: ap-northeast-2
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+  mail:
+    password: ${MAIL_PASSWORD}
+
+security:
+  auth-cookie:
+    secure: ${AUTH_COOKIE_SECURE}
+  jwt:
+    secret: ${JWT_SECRET}
+
+asset:
+  storage:
+    s3:
+      bucket: ${ASSET_S3_BUCKET}

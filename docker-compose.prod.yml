@@ -1,0 +1,51 @@
+services:
+  app:
+    build:
+      context: .
+    image: fantasy-baseball-server
+    container_name: fantasy-baseball-app
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      REDIS_CORE_HOST: redis
+      REDIS_CORE_PORT: 6379
+      JAVA_TOOL_OPTIONS: >-
+        -XX:InitialRAMPercentage=20.0
+        -XX:MaxRAMPercentage=65.0
+        -Djavax.net.ssl.trustStore=/app/combined-truststore
+        -Djavax.net.ssl.trustStorePassword=changeit
+    depends_on:
+      redis:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "5"
+    mem_limit: 1400m
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: fantasy-baseball-redis
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec", "--maxmemory", "128mb", "--maxmemory-policy", "noeviction"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "5"
+    mem_limit: 256m
+    restart: unless-stopped
+
+volumes:
+  redis-data:

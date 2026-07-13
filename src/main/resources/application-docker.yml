@@ -1,5 +1,0 @@
-asset:
-  storage:
-    s3:
-      # Docker 로컬 실행에서는 S3 캐시를 짧게 둔다. 접속 정보와 bucket은 공통 설정/compose 값을 그대로 따른다.
-      cache-control: public, max-age=60

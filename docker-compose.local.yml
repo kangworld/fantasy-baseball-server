@@ -2,18 +2,15 @@ services:
   app:
     build:
       context: .
-    image: fantasy-baseball-server:local
+    image: fantasy-baseball-server
     container_name: fantasy-baseball-app-local
     ports:
       - "8080:8080"
     environment:
-      SPRING_PROFILES_ACTIVE: docker
+      SPRING_PROFILES_ACTIVE: local
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/fantasy_baseball?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
-      SPRING_DATASOURCE_USERNAME: fantasy
-      SPRING_DATASOURCE_PASSWORD: fantasy
-      JWT_SECRET: fantasy-baseball-docker-jwt-secret-key-2026-local-dev-only
-      MAIL_PASSWORD: temporary-mail-password
-      ASSET_S3_BUCKET: fantasy-baseball-dev-979769296786-ap-northeast-2-an
+      SPRING_DATA_REDIS_HOST: redis
+      REDIS_CORE_HOST: redis
     depends_on:
       mysql:
         condition: service_healthy

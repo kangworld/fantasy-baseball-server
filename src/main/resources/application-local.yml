@@ -10,3 +10,8 @@ spring:
 redis:
   core:
     host: localhost
+
+asset:
+  storage:
+    s3:
+      cache-control: public, max-age=60
