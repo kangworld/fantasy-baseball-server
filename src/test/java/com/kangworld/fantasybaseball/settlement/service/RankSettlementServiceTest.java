@@ -48,10 +48,11 @@ class RankSettlementServiceTest {
 
     private RankSettlementService rankSettlementService;
 
+    /** 경기일 포인트 합계가 음수여도 일간 랭킹은 0점이고 시즌 누적 점수는 줄지 않아야 한다. */
     @Test
     void settle은_일간_음수_점수를_0점으로_보정하고_시즌_누적을_감점하지_않는다() {
         // given
-        LocalDate targetDate = LocalDate.of(2026, 5, 11);
+        LocalDate settlementDate = LocalDate.of(2026, 5, 12);
         LocalDateTime now = LocalDateTime.of(2026, 5, 12, 2, 0);
         rankSettlementService = new RankSettlementService(
                 rosterDao,
@@ -66,21 +67,21 @@ class RankSettlementServiceTest {
                 roster(1L, 10L),
                 roster(2L, 20L)
         ));
-        given(rosterPointCalculator.calculateAll(eq(20260511), anyList())).willReturn(Map.of(
+        given(rosterPointCalculator.calculateAll(eq(20260512), anyList())).willReturn(Map.of(
                 1L, -100,
                 2L, 50
         ));
-        given(dailyRankDao.findByDateId(20260510)).willReturn(List.of(
-                dailyRank(20260510, 1, 10L, 60, 1),
-                dailyRank(20260510, 2, 20L, 40, 2)
+        given(dailyRankDao.findByDateId(20260511)).willReturn(List.of(
+                dailyRank(20260511, 1, 10L, 60, 1),
+                dailyRank(20260511, 2, 20L, 40, 2)
         ));
-        given(seasonRankDao.findByDateId(20260510)).willReturn(List.of(
-                seasonRank(20260510, 1, 10L, 1000, 1),
-                seasonRank(20260510, 2, 30L, 900, 2)
+        given(seasonRankDao.findByDateId(20260511)).willReturn(List.of(
+                seasonRank(20260511, 1, 10L, 1000, 1),
+                seasonRank(20260511, 2, 30L, 900, 2)
         ));
 
         // when
-        rankSettlementService.settle(targetDate);
+        rankSettlementService.settle(settlementDate);
 
         // then
         ArgumentCaptor<List<DailyRank>> dailyRanksCaptor = ArgumentCaptor.forClass(List.class);
@@ -105,10 +106,11 @@ class RankSettlementServiceTest {
                 .containsExactly(1, 2, 0);
     }
 
+    /** 같은 점수를 받은 회원은 정산일이 바뀌어도 같은 표시 순위를 받아야 한다. */
     @Test
     void settle은_동점이면_displayRankNo를_같게_계산한다() {
         // given
-        LocalDate targetDate = LocalDate.of(2026, 5, 11);
+        LocalDate settlementDate = LocalDate.of(2026, 5, 12);
         rankSettlementService = new RankSettlementService(
                 rosterDao,
                 dailyRankDao,
@@ -123,16 +125,16 @@ class RankSettlementServiceTest {
                 roster(2L, 20L),
                 roster(3L, 30L)
         ));
-        given(rosterPointCalculator.calculateAll(eq(20260511), anyList())).willReturn(Map.of(
+        given(rosterPointCalculator.calculateAll(eq(20260512), anyList())).willReturn(Map.of(
                 1L, 100,
                 2L, 100,
                 3L, 90
         ));
-        given(dailyRankDao.findByDateId(20260510)).willReturn(List.of());
-        given(seasonRankDao.findByDateId(20260510)).willReturn(List.of());
+        given(dailyRankDao.findByDateId(20260511)).willReturn(List.of());
+        given(seasonRankDao.findByDateId(20260511)).willReturn(List.of());
 
         // when
-        rankSettlementService.settle(targetDate);
+        rankSettlementService.settle(settlementDate);
 
         // then
         ArgumentCaptor<List<DailyRank>> dailyRanksCaptor = ArgumentCaptor.forClass(List.class);

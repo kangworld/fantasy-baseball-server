@@ -64,7 +64,7 @@ public class SettlementScheduler {
         settlementExecutionRecorder.runStep(
                 settlementExecutionId,
                 SettlementStepName.DAILY_RANK,
-                () -> rankSettlementService.settleDaily(settlementDate)
+                () -> rankSettlementService.settleDaily(settlementDate, gameDate)
         );
         settlementExecutionRecorder.runStep(
                 settlementExecutionId,

@@ -86,6 +86,7 @@ class SettlementSchedulerTest {
         verify(playerImageBatchService).refresh(settlementDate);
     }
 
+    /** 스케줄러가 경기일과 정산일을 뒤바꾸면 로스터와 점수가 다른 날짜에서 조회된다. */
     @Test
     void doDailySettlement는_정산일과_경기일을_분리해_스텝을_호출한다() {
         // given
@@ -119,7 +120,7 @@ class SettlementSchedulerTest {
         verify(playerBuildSettlementService).settle(gameDate);
         verify(playerPointSettlementService).settle(settlementDate, gameDate);
         verify(playerCostSettlementService).settle(settlementDate);
-        verify(rankSettlementService).settleDaily(settlementDate);
+        verify(rankSettlementService).settleDaily(settlementDate, gameDate);
         verify(rankSettlementService).settleSeason(settlementDate);
     }
 

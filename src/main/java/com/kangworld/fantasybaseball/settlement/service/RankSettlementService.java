@@ -35,16 +35,16 @@ public class RankSettlementService {
     private final FantasyTime fantasyTime;
 
     @Transactional
-    public void settle(LocalDate targetDate) {
-        List<DailyRank> dailyRanks = settleDaily(targetDate);
-        settleSeason(targetDate, dailyRanks);
+    public void settle(LocalDate settlementDate) {
+        List<DailyRank> dailyRanks = settleDaily(settlementDate, settlementDate.minusDays(1));
+        settleSeason(settlementDate, dailyRanks);
     }
 
     @Transactional
-    public List<DailyRank> settleDaily(LocalDate targetDate) {
+    public List<DailyRank> settleDaily(LocalDate settlementDate, LocalDate gameDate) {
         LocalDateTime now = fantasyTime.getDateTime();
 
-        List<DailyRank> dailyRanks = createDailyRanks(targetDate, now);
+        List<DailyRank> dailyRanks = createDailyRanks(settlementDate, gameDate, now);
         dailyRankDao.insertAll(dailyRanks);
 
         return dailyRanks;
@@ -64,18 +64,19 @@ public class RankSettlementService {
         seasonRankDao.insertAll(seasonRanks);
     }
 
-    private List<DailyRank> createDailyRanks(LocalDate targetDate, LocalDateTime now) {
-        int dateId = DateIds.from(targetDate);
-        int previousDateId = DateIds.from(targetDate.minusDays(1));
+    private List<DailyRank> createDailyRanks(LocalDate settlementDate, LocalDate gameDate, LocalDateTime now) {
+        int settlementDateId = DateIds.from(settlementDate);
+        int previousDateId = DateIds.from(settlementDate.minusDays(1));
         Map<Long, DailyRank> previousRankByMemberId = toDailyRankMap(dailyRankDao.findByDateId(previousDateId));
-        List<Roster> rosters = rosterDao.findByDateId(dateId);
-        Map<Long, Integer> pointByRosterId = rosterPointCalculator.calculateAll(dateId, rosters);
+        // 로스터는 경기가 열린 날에 제출하고, 그 선수의 포인트와 랭킹은 다음 날 정산일에 저장한다.
+        List<Roster> rosters = rosterDao.findByDateId(DateIds.from(gameDate));
+        Map<Long, Integer> pointByRosterId = rosterPointCalculator.calculateAll(settlementDateId, rosters);
         List<MemberPoint> memberPoints = rosters.stream()
                 .map(roster -> new MemberPoint(roster.getMemberId(), calculateDailyPoint(roster, pointByRosterId)))
                 .toList();
 
         return rankCalculator.calculate(memberPoints).stream()
-                .map(rank -> toDailyRank(dateId, rank, previousDisplayRankNo(rank, previousRankByMemberId), now))
+                .map(rank -> toDailyRank(settlementDateId, rank, previousDisplayRankNo(rank, previousRankByMemberId), now))
                 .toList();
     }
 
