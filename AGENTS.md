@@ -4,8 +4,8 @@
 
 ## 공통 지침 적용
 
-- Java·Spring 백엔드 구현과 장애 조사에는 `backend-agent-docs:spring-backend-guidance`를 적용한다.
-- 테스트 설계·실행, 회귀 검증, 코드 검토에는 `backend-agent-docs:spring-backend-verification`을 적용한다.
+- Java·Spring 백엔드 구현과 장애 조사에는 `spring-workbench:spring-backend-guidance`를 적용한다.
+- 테스트 설계·실행, 회귀 검증, 코드 검토에는 `spring-workbench:spring-backend-verification`을 적용한다.
 - 스킬이 안내하는 공통 기준과 이 프로젝트에 해당하는 기술 기준을 읽는다. 플러그인에 접근할 수 없으면 누락된 지침과 영향 범위를 알린다.
 - 사용자 요청과 확정된 제품·API·DB 계약을 우선하고, 프로젝트 전용 규칙과 공통 기준의 충돌은 차이와 영향 범위를 확인한다.
 
