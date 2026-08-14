@@ -45,7 +45,7 @@ public class KboScheduleApiFetcher implements KboScheduleFetcher {
                 .body(ScheduleResponse.class);
 
         if (response == null || response.result == null || response.result.games == null) {
-            return List.of();
+            throw new IllegalStateException("KBO 경기 일정 응답이 누락되었습니다. date=" + fromDate);
         }
 
         // 일정 API는 KBO 외의 부가 경기 목록도 섞여서 내려와서 categoryId로 한 번 더 필터링.

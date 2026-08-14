@@ -17,11 +17,7 @@ import com.kangworld.fantasybaseball.common.date.DateIds;
 import com.kangworld.fantasybaseball.common.time.FantasyTime;
 import com.kangworld.fantasybaseball.external.kbo.model.KboBatterRecord;
 import com.kangworld.fantasybaseball.external.kbo.model.KboGameRecord;
-import com.kangworld.fantasybaseball.external.kbo.model.KboGameStatus;
 import com.kangworld.fantasybaseball.external.kbo.model.KboPitcherRecord;
-import com.kangworld.fantasybaseball.external.kbo.model.KboScheduleGame;
-import com.kangworld.fantasybaseball.external.kbo.service.KboGameRecordFetchService;
-import com.kangworld.fantasybaseball.external.kbo.service.KboScheduleFetchService;
 import com.kangworld.fantasybaseball.player.model.PlayerProfile;
 import com.kangworld.fantasybaseball.player.model.PlayerType;
 import com.kangworld.fantasybaseball.point.dao.PlayerDailyPointDao;
@@ -43,8 +39,7 @@ public class PlayerPointSettlementService {
 
     private static final int NEW_PLAYER_COST = 2;
 
-    private final KboScheduleFetchService scheduleFetchService;
-    private final KboGameRecordFetchService gameRecordFetchService;
+    private final SettlementGameRecordService settlementGameRecordService;
     private final PointRuleDao pointRuleDao;
     private final PlayerDailyPointDao playerDailyPointDao;
     private final PlayerProfilePointDao playerProfilePointDao;
@@ -54,21 +49,10 @@ public class PlayerPointSettlementService {
     private final SettlementTransactionExecutor transactionExecutor;
 
     public void settle(LocalDate settlementDate, LocalDate gameDate) {
-        // 정산은 완료 또는 서스펜디드 경기만 확정 데이터로 보고, 진행 중 경기는 실시간 조회에만 사용한다.
-        List<KboGameRecord> gameRecords = scheduleFetchService.fetch(gameDate).stream()
-                .filter(this::isSettlementTarget)
-                .map(KboScheduleGame::getGameId)
-                .map(gameRecordFetchService::fetch)
-                .toList();
+        List<KboGameRecord> gameRecords = settlementGameRecordService.fetch(gameDate);
 
         // 외부 KBO 응답을 확정한 뒤 포인트와 프로필 DB 변경만 하나의 트랜잭션으로 묶는다.
         transactionExecutor.execute(() -> applyGameRecords(settlementDate, gameRecords));
-    }
-
-    private boolean isSettlementTarget(KboScheduleGame game) {
-        KboGameStatus status = game.getStatus();
-
-        return status == KboGameStatus.FINISHED || status == KboGameStatus.SUSPENDED;
     }
 
     private void applyGameRecords(LocalDate targetDate, List<KboGameRecord> gameRecords) {

@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
 import com.github.benmanes.caffeine.cache.Ticker;
@@ -15,8 +16,8 @@ public class KboExternalConfig {
     @Bean
     @Qualifier("kboRestClient")
     public RestClient kboRestClient(RestClient.Builder builder, KboApiProperties properties) {
-        // KBO 호출은 baseUrl만 공통으로 고정하고, 경로/쿼리는 fetcher가 책임지게 둔다.
         return builder
+                .requestFactory(requestFactory())
                 .baseUrl(properties.baseUrl())
                 .build();
     }
@@ -26,8 +27,17 @@ public class KboExternalConfig {
     public RestClient kboImageRestClient(RestClient.Builder builder, KboApiProperties properties) {
         // KBO 선수 이미지 CDN은 네이버 스포츠 API와 host가 달라서 별도 client로 분리한다.
         return builder
+                .requestFactory(requestFactory())
                 .baseUrl(properties.imageBaseUrl())
                 .build();
+    }
+
+    private SimpleClientHttpRequestFactory requestFactory() {
+        // 외부 응답이 멈춰도 정산과 로스터 요청이 무기한 대기하지 않도록 제한한다.
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(3000);
+        factory.setReadTimeout(5000);
+        return factory;
     }
 
     @Bean

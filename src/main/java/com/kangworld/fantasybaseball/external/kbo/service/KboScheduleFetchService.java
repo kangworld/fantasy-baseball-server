@@ -34,6 +34,10 @@ public class KboScheduleFetchService {
         return scheduleCache.get(date);
     }
 
+    public List<KboScheduleGame> fetchFresh(LocalDate date) {
+        return loadByDate(date);
+    }
+
     private List<KboScheduleGame> loadByDate(LocalDate date) {
         // 일정 API는 날짜 단위 조회라서 캐시 key도 날짜 하나로 고정.
         return List.copyOf(scheduleFetcher.fetch(date, date));

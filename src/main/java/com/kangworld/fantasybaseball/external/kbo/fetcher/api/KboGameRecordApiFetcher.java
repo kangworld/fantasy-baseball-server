@@ -50,7 +50,8 @@ public class KboGameRecordApiFetcher implements KboGameRecordFetcher {
                 .retrieve()
                 .body(GameRecordResponse.class);
 
-        if (response.result == null || response.result.recordData == null) {
+        if (response == null || response.result == null || response.result.recordData == null
+                || response.result.recordData.gameInfo == null) {
             log.warn("KBO game record data is empty. gameId={}", gameId);
 
             return KboGameRecord.builder()
@@ -81,10 +82,17 @@ public class KboGameRecordApiFetcher implements KboGameRecordFetcher {
                 // record API의 gameInfo에는 gameId가 내려오지 않아 요청에 사용한 gameId를 그대로 보존한다.
                 .gameId(gameId)
                 .status(gameStatusMapper.map(recordData.gameInfo.statusCode, false, false))
+                .completeBoxScore(hasBoxScoreForBothTeams(recordData))
                 .batterRecords(List.copyOf(batters))
                 .pitcherRecords(List.copyOf(pitchers))
                 .etcRecords(toEtcRecords(recordData.etcRecords))
                 .build();
+    }
+
+    private boolean hasBoxScoreForBothTeams(RecordDataResponse recordData) {
+        return recordData.battersBoxscore != null && recordData.pitchersBoxscore != null
+                && recordData.battersBoxscore.away != null && recordData.battersBoxscore.home != null
+                && recordData.pitchersBoxscore.away != null && recordData.pitchersBoxscore.home != null;
     }
 
     private List<KboBatterRecord> toBatterRecords(List<BatterRecordResponse> records, String teamCode) {

@@ -1,9 +1,10 @@
 package com.kangworld.fantasybaseball.settlement.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -20,11 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.kangworld.fantasybaseball.common.time.FantasyTime;
 import com.kangworld.fantasybaseball.external.kbo.model.KboBatterRecord;
 import com.kangworld.fantasybaseball.external.kbo.model.KboGameRecord;
-import com.kangworld.fantasybaseball.external.kbo.model.KboGameStatus;
 import com.kangworld.fantasybaseball.external.kbo.model.KboPitcherRecord;
-import com.kangworld.fantasybaseball.external.kbo.model.KboScheduleGame;
-import com.kangworld.fantasybaseball.external.kbo.service.KboGameRecordFetchService;
-import com.kangworld.fantasybaseball.external.kbo.service.KboScheduleFetchService;
 import com.kangworld.fantasybaseball.player.model.PlayerProfile;
 import com.kangworld.fantasybaseball.player.model.PlayerPosition;
 import com.kangworld.fantasybaseball.point.dao.PlayerDailyPointDao;
@@ -41,10 +38,7 @@ import com.kangworld.fantasybaseball.point.service.PointCalculator;
 class PlayerPointSettlementServiceTest {
 
     @Mock
-    private KboScheduleFetchService scheduleFetchService;
-
-    @Mock
-    private KboGameRecordFetchService gameRecordFetchService;
+    private SettlementGameRecordService settlementGameRecordService;
 
     @Mock
     private PointRuleDao pointRuleDao;
@@ -70,8 +64,20 @@ class PlayerPointSettlementServiceTest {
     @InjectMocks
     private PlayerPointSettlementService playerPointSettlementService;
 
+    /** 기록 조회가 실패하면 현재 날짜의 선수 점수와 프로필을 쓰지 않아야 한다. */
     @Test
-    void settle은_FINISHED와_SUSPENDED_경기만_기록을_조회해_선수_포인트를_저장한다() {
+    void 경기_기록_조회가_실패하면_점수와_프로필을_쓰지_않는다() {
+        LocalDate gameDate = LocalDate.of(2026, 5, 11);
+        given(settlementGameRecordService.fetch(gameDate)).willThrow(new IllegalStateException("기록 누락"));
+
+        assertThatThrownBy(() -> playerPointSettlementService.settle(gameDate.plusDays(1), gameDate))
+                .isInstanceOf(IllegalStateException.class);
+        verifyNoInteractions(playerDailyPointDao, playerProfilePointDao);
+    }
+
+    /** 정산에 사용한 기록이 선수별 포인트로 저장되어야 한다. */
+    @Test
+    void settle은_정산용_경기_기록의_선수_포인트를_저장한다() {
         // given
         LocalDate settlementDate = LocalDate.of(2026, 5, 12);
         LocalDate gameDate = LocalDate.of(2026, 5, 11);
@@ -86,14 +92,7 @@ class PlayerPointSettlementServiceTest {
                 .gameId("game-2")
                 .playerId(100L)
                 .build();
-        given(scheduleFetchService.fetch(gameDate)).willReturn(List.of(
-                game("game-1", KboGameStatus.PLAYING),
-                game("game-2", KboGameStatus.FINISHED),
-                game("game-3", KboGameStatus.SUSPENDED),
-                game("game-4", KboGameStatus.CANCELED)
-        ));
-        given(gameRecordFetchService.fetch("game-2")).willReturn(finishedRecord);
-        given(gameRecordFetchService.fetch("game-3")).willReturn(suspendedRecord);
+        given(settlementGameRecordService.fetch(gameDate)).willReturn(List.of(finishedRecord, suspendedRecord));
         given(fantasyTime.getDateTime()).willReturn(now);
         given(pointRuleDao.findAllActive()).willReturn(List.of());
         given(playerGameRecordMapper.toBatterRecords(finishedRecord)).willReturn(List.of(batterRecord));
@@ -131,16 +130,6 @@ class PlayerPointSettlementServiceTest {
                 .containsExactly(17, 30);
         assertThat(profilesCaptor.getValue()).extracting(PlayerProfile::getPointGameCount)
                 .containsExactly(3, 3);
-        verify(gameRecordFetchService).fetch("game-2");
-        verify(gameRecordFetchService).fetch("game-3");
-        verifyNoMoreInteractions(gameRecordFetchService);
-    }
-
-    private KboScheduleGame game(String gameId, KboGameStatus status) {
-        return KboScheduleGame.builder()
-                .gameId(gameId)
-                .status(status)
-                .build();
     }
 
     private KboGameRecord gameRecord(String gameId) {

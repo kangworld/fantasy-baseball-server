@@ -3,7 +3,6 @@ package com.kangworld.fantasybaseball.settlement.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -22,12 +21,8 @@ import com.kangworld.fantasybaseball.common.time.FantasyTime;
 import com.kangworld.fantasybaseball.external.kbo.fetcher.KboPlayerProfileFetcher;
 import com.kangworld.fantasybaseball.external.kbo.model.KboBatterRecord;
 import com.kangworld.fantasybaseball.external.kbo.model.KboGameRecord;
-import com.kangworld.fantasybaseball.external.kbo.model.KboGameStatus;
 import com.kangworld.fantasybaseball.external.kbo.model.KboPitcherRecord;
 import com.kangworld.fantasybaseball.external.kbo.model.KboPlayerProfile;
-import com.kangworld.fantasybaseball.external.kbo.model.KboScheduleGame;
-import com.kangworld.fantasybaseball.external.kbo.service.KboGameRecordFetchService;
-import com.kangworld.fantasybaseball.external.kbo.service.KboScheduleFetchService;
 import com.kangworld.fantasybaseball.player.dao.PlayerDao;
 import com.kangworld.fantasybaseball.player.model.Player;
 import com.kangworld.fantasybaseball.player.model.PlayerPosition;
@@ -38,10 +33,7 @@ import com.kangworld.fantasybaseball.player.model.PlayerType;
 class PlayerBuildSettlementServiceTest {
 
     @Mock
-    private KboScheduleFetchService scheduleFetchService;
-
-    @Mock
-    private KboGameRecordFetchService gameRecordFetchService;
+    private SettlementGameRecordService settlementGameRecordService;
 
     @Mock
     private PlayerDao playerDao;
@@ -63,15 +55,11 @@ class PlayerBuildSettlementServiceTest {
         // given
         LocalDate targetDate = LocalDate.of(2026, 6, 2);
         LocalDateTime now = LocalDateTime.of(2026, 6, 3, 2, 0);
-        given(scheduleFetchService.fetch(targetDate)).willReturn(List.of(
-                game("game-1", KboGameStatus.PLAYING),
-                game("game-2", KboGameStatus.FINISHED)
-        ));
-        given(gameRecordFetchService.fetch("game-2")).willReturn(KboGameRecord.builder()
+        given(settlementGameRecordService.fetch(targetDate)).willReturn(List.of(KboGameRecord.builder()
                 .gameId("game-2")
                 .batterRecords(List.of(batter("76290", "김현수", PlayerPosition.DH)))
                 .pitcherRecords(List.of(pitcher("63492", "김광현")))
-                .build());
+                .build()));
         given(fantasyTime.getDateTime()).willReturn(now);
 
         // when
@@ -87,8 +75,6 @@ class PlayerBuildSettlementServiceTest {
         assertThat(playersCaptor.getValue()).filteredOn(player -> player.getId() == 63492L)
                 .extracting(Player::getType, Player::getPosition)
                 .containsExactly(org.assertj.core.groups.Tuple.tuple(PlayerType.PITCHER, PlayerPosition.P));
-        verify(gameRecordFetchService).fetch("game-2");
-        verifyNoMoreInteractions(gameRecordFetchService);
     }
 
     @Test
@@ -96,12 +82,11 @@ class PlayerBuildSettlementServiceTest {
         // given
         LocalDate targetDate = LocalDate.of(2026, 6, 2);
         LocalDateTime now = LocalDateTime.of(2026, 6, 3, 2, 0);
-        given(scheduleFetchService.fetch(targetDate)).willReturn(List.of(game("game-2", KboGameStatus.FINISHED)));
-        given(gameRecordFetchService.fetch("game-2")).willReturn(KboGameRecord.builder()
+        given(settlementGameRecordService.fetch(targetDate)).willReturn(List.of(KboGameRecord.builder()
                 .gameId("game-2")
                 .batterRecords(List.of(batter("78168", "강승호", PlayerPosition.DH)))
                 .pitcherRecords(List.of(pitcher("78168", "강승호")))
-                .build());
+                .build()));
         given(playerProfileFetcher.fetch(2026, 78168L)).willReturn(Optional.of(KboPlayerProfile.builder()
                 .playerId(78168L)
                 .name("강승호")
@@ -119,13 +104,6 @@ class PlayerBuildSettlementServiceTest {
         assertThat(playersCaptor.getValue()).singleElement()
                 .extracting(Player::getType, Player::getPosition)
                 .containsExactly(PlayerType.BATTER, PlayerPosition.B2);
-    }
-
-    private KboScheduleGame game(String gameId, KboGameStatus status) {
-        return KboScheduleGame.builder()
-                .gameId(gameId)
-                .status(status)
-                .build();
     }
 
     private KboBatterRecord batter(String playerCode, String name, PlayerPosition position) {

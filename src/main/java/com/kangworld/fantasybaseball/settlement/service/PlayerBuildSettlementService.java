@@ -16,12 +16,8 @@ import com.kangworld.fantasybaseball.common.time.FantasyTime;
 import com.kangworld.fantasybaseball.external.kbo.fetcher.KboPlayerProfileFetcher;
 import com.kangworld.fantasybaseball.external.kbo.model.KboBatterRecord;
 import com.kangworld.fantasybaseball.external.kbo.model.KboGameRecord;
-import com.kangworld.fantasybaseball.external.kbo.model.KboGameStatus;
 import com.kangworld.fantasybaseball.external.kbo.model.KboPitcherRecord;
 import com.kangworld.fantasybaseball.external.kbo.model.KboPlayerProfile;
-import com.kangworld.fantasybaseball.external.kbo.model.KboScheduleGame;
-import com.kangworld.fantasybaseball.external.kbo.service.KboGameRecordFetchService;
-import com.kangworld.fantasybaseball.external.kbo.service.KboScheduleFetchService;
 import com.kangworld.fantasybaseball.player.dao.PlayerDao;
 import com.kangworld.fantasybaseball.player.model.Player;
 import com.kangworld.fantasybaseball.player.model.PlayerPosition;
@@ -36,29 +32,18 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class PlayerBuildSettlementService {
 
-    private final KboScheduleFetchService scheduleFetchService;
-    private final KboGameRecordFetchService gameRecordFetchService;
+    private final SettlementGameRecordService settlementGameRecordService;
     private final KboPlayerProfileFetcher playerProfileFetcher;
     private final PlayerDao playerDao;
     private final FantasyTime fantasyTime;
     private final SettlementTransactionExecutor transactionExecutor;
 
     public void settle(LocalDate targetDate) {
-        List<KboGameRecord> gameRecords = scheduleFetchService.fetch(targetDate).stream()
-                .filter(this::isSettlementTarget)
-                .map(KboScheduleGame::getGameId)
-                .map(gameRecordFetchService::fetch)
-                .toList();
+        List<KboGameRecord> gameRecords = settlementGameRecordService.fetch(targetDate);
 
         // KBO 일정, 기록, 선수 프로필 호출을 모두 끝낸 뒤 DB 쓰기만 트랜잭션으로 실행한다.
         List<Player> players = buildAppearedPlayers(targetDate.getYear(), gameRecords);
         transactionExecutor.execute(() -> playerDao.upsertAll(players));
-    }
-
-    private boolean isSettlementTarget(KboScheduleGame game) {
-        KboGameStatus status = game.getStatus();
-
-        return status == KboGameStatus.FINISHED || status == KboGameStatus.SUSPENDED;
     }
 
     private List<Player> buildAppearedPlayers(int season, List<KboGameRecord> gameRecords) {

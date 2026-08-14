@@ -34,6 +34,7 @@ class KboGameRecordApiFetcherTest {
         // record 응답의 gameInfo에는 gameId가 없으므로 요청 경로의 값을 내부 모델에 보존한다.
         assertThat(record.getGameId()).isEqualTo("20240421KTLT12024");
         assertThat(record.getStatus()).isEqualTo(KboGameStatus.FINISHED);
+        assertThat(record.isCompleteBoxScore()).isTrue();
         assertThat(record.getBatterRecords())
                 .filteredOn(batter -> "50054".equals(batter.getPlayerCode()))
                 .singleElement()

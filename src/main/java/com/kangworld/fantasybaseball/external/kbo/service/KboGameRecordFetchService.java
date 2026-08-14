@@ -14,9 +14,11 @@ import com.kangworld.fantasybaseball.external.kbo.model.KboGameRecord;
 @Service
 public class KboGameRecordFetchService {
 
+    private final KboGameRecordFetcher gameRecordFetcher;
     private final LoadingCache<String, KboGameRecord> recordCache;
 
     public KboGameRecordFetchService(KboGameRecordFetcher gameRecordFetcher, KboApiProperties properties, Ticker ticker) {
+        this.gameRecordFetcher = gameRecordFetcher;
         this.recordCache = Caffeine.newBuilder()
                 // 경기 기록은 경기 중에도 바뀌어서 짧게 새로고침되게 둔다.
                 .refreshAfterWrite(properties.recordCacheTtl().toMillis(), TimeUnit.MILLISECONDS)
@@ -28,6 +30,10 @@ public class KboGameRecordFetchService {
 
     public KboGameRecord fetch(String gameId) {
         return recordCache.get(gameId);
+    }
+
+    public KboGameRecord fetchFresh(String gameId) {
+        return gameRecordFetcher.fetch(gameId);
     }
 
 }
