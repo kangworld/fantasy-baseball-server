@@ -2,6 +2,7 @@ package com.kangworld.fantasybaseball.roster.service.impl;
 
 import com.kangworld.fantasybaseball.common.date.DateIds;
 import com.kangworld.fantasybaseball.common.time.FantasyTime;
+import com.kangworld.fantasybaseball.external.kbo.model.KboGameStatus;
 import com.kangworld.fantasybaseball.external.kbo.model.KboScheduleGame;
 import com.kangworld.fantasybaseball.external.kbo.service.KboScheduleFetchService;
 import com.kangworld.fantasybaseball.game.service.GameService;
@@ -14,6 +15,7 @@ import com.kangworld.fantasybaseball.roster.dao.RosterDao;
 import com.kangworld.fantasybaseball.roster.dao.RosterPlayerDao;
 import com.kangworld.fantasybaseball.roster.exception.RosterAlreadyExistsException;
 import com.kangworld.fantasybaseball.roster.exception.RosterNotFoundException;
+import com.kangworld.fantasybaseball.roster.exception.RosterScheduleUnavailableException;
 import com.kangworld.fantasybaseball.roster.exception.RosterValidationException;
 import com.kangworld.fantasybaseball.roster.model.Roster;
 import com.kangworld.fantasybaseball.roster.model.RosterPlayer;
@@ -28,7 +30,9 @@ import com.kangworld.rediscore.lock.annotation.RedisLock;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClientException;
 
+import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Comparator;
@@ -67,7 +71,7 @@ public class RosterServiceImpl implements RosterService {
         // 선수 존재 / 라인업 규칙 / 시작 경기 제한을 모두 통과한 뒤에만 roster row를 만든다.
         Map<Long, PlayerSummary> playerSummaryById = getPlayerSummaries(dateId, getRequestedPlayerIds(request.getPlayers()));
         validateLineup(request.getPlayers(), playerSummaryById);
-        validateStartedPlayerChange(rosterDate, now, Map.of(), playerSummaryById);
+        validateStartedPlayerChange(rosterDate, Map.of(), playerSummaryById);
 
         Roster roster = Roster.builder()
                 .memberId(memberId)
@@ -102,7 +106,7 @@ public class RosterServiceImpl implements RosterService {
 
         List<RosterPlayer> savedPlayers = rosterPlayerDao.findByRosterId(roster.getRosterId());
         Map<Long, PlayerSummary> savedPlayerSummaryById = getPlayerSummaries(roster.getDateId(), getRosterPlayerIds(savedPlayers));
-        validateStartedPlayerChange(rosterDate, now, savedPlayerSummaryById, playerSummaryById);
+        validateStartedPlayerChange(rosterDate, savedPlayerSummaryById, playerSummaryById);
 
         List<RosterPlayer> rosterPlayers = toRosterPlayers(
                 roster.getRosterId(),
@@ -234,7 +238,6 @@ public class RosterServiceImpl implements RosterService {
 
     private void validateStartedPlayerChange(
             LocalDate rosterDate,
-            LocalDateTime now,
             Map<Long, PlayerSummary> savedPlayerSummaryById,
             Map<Long, PlayerSummary> requestedPlayerSummaryById) {
         // 시작 경기 여부는 기존 선수와 요청 선수를 모두 봐야 한다.
@@ -245,7 +248,7 @@ public class RosterServiceImpl implements RosterService {
                 requestedPlayerSummaryById.values().stream()
         ).toList();
 
-        Set<String> startedTeamCodes = findStartedTeamCodes(rosterDate, now, checkTargets);
+        Set<String> startedTeamCodes = findStartedTeamCodes(rosterDate, checkTargets);
         Set<Long> savedStartedPlayerIds = findStartedPlayerIds(savedPlayerSummaryById, startedTeamCodes);
         Set<Long> requestedStartedPlayerIds = findStartedPlayerIds(requestedPlayerSummaryById, startedTeamCodes);
 
@@ -259,19 +262,36 @@ public class RosterServiceImpl implements RosterService {
 
     private Set<String> findStartedTeamCodes(
             LocalDate rosterDate,
-            LocalDateTime now,
             List<PlayerSummary> playerSummaries) {
         // 선수별로 경기를 직접 들고 있지 않으므로, 당일 팀 코드를 통해 이미 시작한 경기 팀을 찾는다.
         Set<String> teamCodes = playerSummaries.stream()
                 .map(PlayerSummary::getTeamCode)
                 .collect(Collectors.toSet());
 
-        // 시작 시간이 지난 경기는 이후 취소/중지 상태로 바뀌어도 선수 교체를 허용하지 않는다.
-        return scheduleFetchService.fetch(rosterDate).stream()
-                .filter(game -> game.getStartAt() != null && !game.getStartAt().isAfter(now))
+        List<KboScheduleGame> schedule = fetchScheduleForWrite(rosterDate);
+        LocalDateTime now = fantasyTime.getDateTime();
+        return schedule.stream()
+                .filter(game -> isStarted(game, now))
                 .flatMap(game -> Stream.of(game.getHomeTeamCode(), game.getAwayTeamCode()))
                 .filter(teamCodes::contains)
                 .collect(Collectors.toSet());
+    }
+
+    private List<KboScheduleGame> fetchScheduleForWrite(LocalDate rosterDate) {
+        try {
+            // 화면 캐시는 갱신 중에도 기존 값을 반환하므로 선수 잠금 판단에는 사용하지 않는다.
+            return scheduleFetchService.fetchFresh(rosterDate);
+        } catch (RestClientException | IllegalStateException | DateTimeException exception) {
+            throw new RosterScheduleUnavailableException(exception);
+        }
+    }
+
+    private boolean isStarted(KboScheduleGame game, LocalDateTime now) {
+        KboGameStatus status = game.getStatus();
+        // 예정 시각보다 먼저 시작한 경기도 잠그며, 시작 시각을 넘긴 경기는 취소되어도 잠금을 유지한다.
+        return status == KboGameStatus.PLAYING || status == KboGameStatus.FINISHED
+                || status == KboGameStatus.SUSPENDED
+                || (game.getStartAt() != null && !game.getStartAt().isAfter(now));
     }
 
     private Set<Long> findStartedPlayerIds(

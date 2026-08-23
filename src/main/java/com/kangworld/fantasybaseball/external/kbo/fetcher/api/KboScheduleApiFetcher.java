@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -56,6 +57,10 @@ public class KboScheduleApiFetcher implements KboScheduleFetcher {
     }
 
     private KboScheduleGame toScheduleGame(ScheduleGameResponse game) {
+        if (!StringUtils.hasText(game.gameId) || !StringUtils.hasText(game.gameDateTime)
+                || !StringUtils.hasText(game.homeTeamCode) || !StringUtils.hasText(game.awayTeamCode)) {
+            throw new IllegalStateException("KBO 경기 일정의 필수 항목이 누락되었습니다.");
+        }
         return KboScheduleGame.builder()
                 .gameId(game.gameId)
                 .startAt(LocalDateTime.parse(game.gameDateTime))

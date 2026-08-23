@@ -94,7 +94,7 @@ class RosterControllerTest {
         given(clock.getZone()).willReturn(SEOUL_ZONE_ID);
         given(redisLockManager.acquire(eq("roster"), eq(3L), any()))
                 .willReturn(new RedisLock("fantasy-baseball::roster-1", "token"));
-        given(scheduleFetchService.fetch(ROSTER_DATE)).willReturn(List.of());
+        given(scheduleFetchService.fetchFresh(ROSTER_DATE)).willReturn(List.of());
     }
 
     @Test
@@ -320,6 +320,60 @@ class RosterControllerTest {
                 .andExpect(jsonPath("$.message").value("로스터 포지션에 등록할 수 없는 선수 유형입니다."));
     }
 
+    /** 일정 조회에 실패하면 로스터 제출을 거절하고, 로스터가 저장되지 않아야 한다. */
+    @Test
+    void rosters_me는_일정_조회에_실패하면_제출을_저장하지_않는다() throws Exception {
+        insertRosterPlayers(defaultPlayerIds());
+        given(scheduleFetchService.fetchFresh(ROSTER_DATE)).willThrow(new IllegalStateException("일정 누락"));
+        String token = jwtAccessTokenFactory.create(1L, "USER");
+        String body = objectMapper.writeValueAsString(rosterRequest(defaultPlayerIds()));
+
+        mockMvc.perform(post("/api/rosters/me")
+                        .cookie(accessTokenCookie(token)).with(trustedOrigin())
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isServiceUnavailable());
+        mockMvc.perform(get("/api/rosters/me")
+                        .cookie(accessTokenCookie(token)).param("date", ROSTER_DATE.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").doesNotExist());
+    }
+
+    /** 더블헤더 첫 경기가 예정보다 일찍 시작하면 해당 팀 선수를 추가할 수 없다. */
+    @Test
+    void rosters_me는_더블헤더_첫_경기가_예정보다_먼저_시작하면_제출을_막는다() throws Exception {
+        insertRosterPlayers(defaultPlayerIds());
+        given(scheduleFetchService.fetchFresh(ROSTER_DATE)).willReturn(List.of(
+                scheduleGame("game-1", ROSTER_NOW.plusMinutes(10), "LG", "HH", KboGameStatus.PLAYING),
+                scheduleGame("game-2", ROSTER_NOW.plusHours(3), "LG", "HH", KboGameStatus.READY)
+        ));
+        String token = jwtAccessTokenFactory.create(1L, "USER");
+
+        mockMvc.perform(post("/api/rosters/me")
+                        .cookie(accessTokenCookie(token)).with(trustedOrigin())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(rosterRequest(defaultPlayerIds()))))
+                .andExpect(status().isBadRequest());
+    }
+
+    /** 로스터 제출은 예정 시각이 바뀐 최신 일정을 기준으로 판단한다. */
+    @Test
+    void rosters_me는_갱신된_시작_시각을_기준으로_제출을_판단한다() throws Exception {
+        insertRosterPlayers(defaultPlayerIds());
+        given(scheduleFetchService.fetch(ROSTER_DATE)).willReturn(List.of(
+                scheduleGame("game-1", ROSTER_NOW.plusHours(2), "LG", "HH", KboGameStatus.READY)
+        ));
+        given(scheduleFetchService.fetchFresh(ROSTER_DATE)).willReturn(List.of(
+                scheduleGame("game-1", ROSTER_NOW, "LG", "HH", KboGameStatus.READY)
+        ));
+        String token = jwtAccessTokenFactory.create(1L, "USER");
+
+        mockMvc.perform(post("/api/rosters/me")
+                        .cookie(accessTokenCookie(token)).with(trustedOrigin())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(rosterRequest(defaultPlayerIds()))))
+                .andExpect(status().isBadRequest());
+    }
+
     @Test
     void rosters_me는_이미_시작한_경기의_선수를_제출할_수_없다() throws Exception {
         // given
@@ -458,13 +512,20 @@ class RosterControllerTest {
     }
 
     private void givenStartedSchedule(String homeTeamCode, String awayTeamCode) {
-        given(scheduleFetchService.fetch(ROSTER_DATE)).willReturn(List.of(KboScheduleGame.builder()
-                .gameId("game-1")
-                .startAt(ROSTER_NOW.minusMinutes(10))
+        given(scheduleFetchService.fetchFresh(ROSTER_DATE)).willReturn(List.of(
+                scheduleGame("game-1", ROSTER_NOW.minusMinutes(10), homeTeamCode, awayTeamCode, KboGameStatus.PLAYING)
+        ));
+    }
+
+    private KboScheduleGame scheduleGame(
+            String gameId, LocalDateTime startAt, String homeTeamCode, String awayTeamCode, KboGameStatus status) {
+        return KboScheduleGame.builder()
+                .gameId(gameId)
+                .startAt(startAt)
                 .homeTeamCode(homeTeamCode)
                 .awayTeamCode(awayTeamCode)
-                .status(KboGameStatus.PLAYING)
-                .build()));
+                .status(status)
+                .build();
     }
 
     private PlayerRecordResponse buildPlayerRecord(long playerId) {
