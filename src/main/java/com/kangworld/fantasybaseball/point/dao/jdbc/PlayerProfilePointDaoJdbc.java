@@ -25,6 +25,14 @@ public class PlayerProfilePointDaoJdbc implements PlayerProfilePointDao {
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     @Override
+    public void deleteByDateId(int dateId) {
+        namedParameterJdbcTemplate.update(
+                "delete from player_profile where date_id = :dateId",
+                new MapSqlParameterSource("dateId", dateId)
+        );
+    }
+
+    @Override
     public List<PlayerProfile> findByDateId(int dateId) {
         String sql = """
                 select *

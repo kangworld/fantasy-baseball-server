@@ -8,6 +8,8 @@ import com.kangworld.fantasybaseball.point.model.PlayerDailyPoint;
 
 public interface PlayerDailyPointDao {
 
+    void deleteByDateId(int dateId);
+
     void upsertAll(List<PlayerDailyPoint> dailyPoints);
 
     Map<Long, Integer> findPointByPlayerIds(int dateId, Set<Long> playerIds);

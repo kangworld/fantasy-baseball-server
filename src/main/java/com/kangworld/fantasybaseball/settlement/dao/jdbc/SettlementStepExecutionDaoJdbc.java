@@ -62,6 +62,23 @@ public class SettlementStepExecutionDaoJdbc implements SettlementStepExecutionDa
     }
 
     @Override
+    public void failStartedSteps(long settlementExecutionId, String message, LocalDateTime now) {
+        String sql = """
+                update settlement_step_execution
+                set status = 'FAILED',
+                    finished_at = :now,
+                    failure_type = 'INTERRUPTED',
+                    failure_message = :message,
+                    updated_at = :now
+                where settlement_execution_id = :id and status = 'STARTED'
+                """;
+        namedParameterJdbcTemplate.update(sql, new MapSqlParameterSource()
+                .addValue("id", settlementExecutionId)
+                .addValue("message", message)
+                .addValue("now", Timestamp.valueOf(now)));
+    }
+
+    @Override
     public void updateDone(long settlementStepExecutionId, LocalDateTime now) {
         String sql = """
                 update settlement_step_execution

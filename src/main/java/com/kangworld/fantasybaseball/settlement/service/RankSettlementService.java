@@ -45,6 +45,7 @@ public class RankSettlementService {
         LocalDateTime now = fantasyTime.getDateTime();
 
         List<DailyRank> dailyRanks = createDailyRanks(settlementDate, gameDate, now);
+        dailyRankDao.deleteByDateId(DateIds.from(settlementDate));
         dailyRankDao.insertAll(dailyRanks);
 
         return dailyRanks;
@@ -61,6 +62,7 @@ public class RankSettlementService {
     private void settleSeason(LocalDate targetDate, List<DailyRank> dailyRanks) {
         LocalDateTime now = fantasyTime.getDateTime();
         List<SeasonRank> seasonRanks = createSeasonRanks(targetDate, dailyRanks, now);
+        seasonRankDao.deleteByDateId(DateIds.from(targetDate));
         seasonRankDao.insertAll(seasonRanks);
     }
 

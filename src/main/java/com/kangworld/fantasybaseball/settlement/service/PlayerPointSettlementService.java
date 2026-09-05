@@ -61,6 +61,8 @@ public class PlayerPointSettlementService {
         LocalDateTime now = fantasyTime.getDateTime();
 
         List<PlayerDailyPoint> dailyPoints = calculateDailyPoints(dateId, gameRecords, now);
+        playerDailyPointDao.deleteByDateId(dateId);
+        playerProfilePointDao.deleteByDateId(dateId);
         playerDailyPointDao.upsertAll(dailyPoints);
 
         updateProfiles(targetDate, gameRecords, dailyPoints, now);

@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.function.Supplier;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.kangworld.fantasybaseball.common.time.FantasyTime;
 import com.kangworld.fantasybaseball.settlement.dao.SettlementExecutionDao;
@@ -27,6 +28,19 @@ public class SettlementExecutionRecorder {
         return settlementExecutionDao.findLatestByTargetDate(targetDate.minusDays(1))
                 .map(execution -> execution.getStatus() == SettlementExecutionStatus.DONE)
                 .orElse(true);
+    }
+
+    @Transactional
+    public void closeInterrupted(LocalDate targetDate) {
+        settlementExecutionDao.findLatestByTargetDate(targetDate)
+                .filter(execution -> execution.getStatus() == SettlementExecutionStatus.STARTED)
+                .ifPresent(execution -> {
+                    long executionId = execution.getSettlementExecutionId();
+                    LocalDateTime now = fantasyTime.getDateTime();
+                    String message = "정산이 완료 상태를 남기기 전에 중단되었습니다.";
+                    settlementStepExecutionDao.failStartedSteps(executionId, message, now);
+                    settlementExecutionDao.updateFailed(executionId, null, message, now);
+                });
     }
 
     public long start(LocalDate targetDate) {

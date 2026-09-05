@@ -8,6 +8,8 @@ public interface SettlementStepExecutionDao {
 
     long insertStarted(long settlementExecutionId, SettlementStepName stepName, LocalDateTime now);
 
+    void failStartedSteps(long settlementExecutionId, String message, LocalDateTime now);
+
     void updateDone(long settlementStepExecutionId, LocalDateTime now);
 
     void updateFailed(

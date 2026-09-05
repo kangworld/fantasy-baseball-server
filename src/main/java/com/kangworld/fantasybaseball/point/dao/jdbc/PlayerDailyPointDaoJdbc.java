@@ -22,6 +22,14 @@ public class PlayerDailyPointDaoJdbc implements PlayerDailyPointDao {
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     @Override
+    public void deleteByDateId(int dateId) {
+        namedParameterJdbcTemplate.update(
+                "delete from player_daily_point where date_id = :dateId",
+                new MapSqlParameterSource("dateId", dateId)
+        );
+    }
+
+    @Override
     public void upsertAll(List<PlayerDailyPoint> dailyPoints) {
         // 같은 날짜/경기/선수 점수는 재계산 결과로 덮어쓰기
         if (dailyPoints.isEmpty())

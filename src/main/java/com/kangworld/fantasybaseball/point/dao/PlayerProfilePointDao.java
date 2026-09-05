@@ -7,6 +7,8 @@ import com.kangworld.fantasybaseball.player.model.PlayerProfile;
 
 public interface PlayerProfilePointDao {
 
+    void deleteByDateId(int dateId);
+
     List<PlayerProfile> findByDateId(int dateId);
 
     List<PlayerProfile> findByDateIds(Set<Integer> dateIds);

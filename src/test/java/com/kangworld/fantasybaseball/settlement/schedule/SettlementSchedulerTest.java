@@ -28,7 +28,9 @@ import com.kangworld.fantasybaseball.settlement.service.PlayerCostSettlementServ
 import com.kangworld.fantasybaseball.settlement.service.PlayerPointSettlementService;
 import com.kangworld.fantasybaseball.settlement.service.RankSettlementService;
 import com.kangworld.fantasybaseball.settlement.service.SettlementExecutionRecorder;
-import com.kangworld.rediscore.lock.annotation.RedisLock;
+import java.util.function.Supplier;
+import org.junit.jupiter.api.BeforeEach;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class SettlementSchedulerTest {
@@ -53,6 +55,15 @@ class SettlementSchedulerTest {
 
     @Mock
     private PlayerImageBatchService playerImageBatchService;
+
+    @Mock
+    private SettlementMutex settlementMutex;
+
+    @BeforeEach
+    void useMutex() {
+        lenient().when(settlementMutex.run(any())).thenAnswer(call ->
+                call.<Supplier<SettlementOutcome>>getArgument(0).get());
+    }
 
     @InjectMocks
     private SettlementScheduler settlementScheduler;
@@ -163,21 +174,15 @@ class SettlementSchedulerTest {
         verify(settlementExecutionRecorder).done(1L);
     }
 
+    /** 운영에서 예약 시각과 시간대를 설정으로 바꿀 수 있어야 한다. */
     @Test
-    void doDailySettlement는_정산_스케줄_프로퍼티와_고정_락을_사용한다() throws NoSuchMethodException {
+    void doDailySettlement는_정산_스케줄_프로퍼티를_사용한다() throws NoSuchMethodException {
         // when
         Scheduled scheduled = SettlementScheduler.class.getMethod("doDailySettlement").getAnnotation(Scheduled.class);
-        RedisLock redisLock = SettlementScheduler.class.getMethod("doDailySettlement").getAnnotation(RedisLock.class);
-        RedisLock manualRedisLock = SettlementScheduler.class.getMethod("doDailySettlement", LocalDate.class)
-                .getAnnotation(RedisLock.class);
 
         // then
         assertThat(scheduled.cron()).isEqualTo("${settlement.schedule.daily-cron}");
         assertThat(scheduled.zone()).isEqualTo("${settlement.schedule.zone}");
-        assertThat(redisLock.name()).isEqualTo("settlement");
-        assertThat(redisLock.key()).isEqualTo("'daily'");
-        assertThat(manualRedisLock.name()).isEqualTo("settlement");
-        assertThat(manualRedisLock.key()).isEqualTo("'daily'");
     }
 
 }

@@ -106,7 +106,7 @@ public class SettlementExecutionDaoJdbc implements SettlementExecutionDao {
                 .addValue("settlementExecutionId", settlementExecutionId)
                 .addValue("status", SettlementExecutionStatus.FAILED.name())
                 .addValue("finishedAt", Timestamp.valueOf(now))
-                .addValue("failureStep", failureStep.name())
+                .addValue("failureStep", failureStep == null ? null : failureStep.name())
                 .addValue("failureMessage", failureMessage)
                 .addValue("updatedAt", Timestamp.valueOf(now)));
     }

@@ -2,7 +2,6 @@ package com.kangworld.fantasybaseball.settlement.schedule;
 
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.atLeastOnce;
@@ -11,6 +10,7 @@ import static org.mockito.Mockito.verify;
 
 import java.time.LocalDate;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -26,8 +26,6 @@ import com.kangworld.fantasybaseball.settlement.service.PlayerCostSettlementServ
 import com.kangworld.fantasybaseball.settlement.service.PlayerPointSettlementService;
 import com.kangworld.fantasybaseball.settlement.service.RankSettlementService;
 import com.kangworld.fantasybaseball.settlement.service.SettlementExecutionRecorder;
-import com.kangworld.rediscore.lock.RedisLock;
-import com.kangworld.rediscore.lock.RedisLockManager;
 
 @SpringBootTest(properties = {
         "settlement.schedule.daily-cron=*/1 * * * * *",
@@ -59,7 +57,7 @@ class SettlementSchedulerSchedulingTest {
     private PlayerImageBatchService playerImageBatchService;
 
     @MockitoBean
-    private RedisLockManager redisLockManager;
+    private SettlementMutex settlementMutex;
 
     @Test
     void 정산_스케줄러는_프로퍼티로_주입한_cron에_따라_실행된다() {
@@ -68,8 +66,7 @@ class SettlementSchedulerSchedulingTest {
         given(fantasyTime.rawNow()).willReturn(targetDate);
         given(settlementExecutionRecorder.canStart(targetDate)).willReturn(true);
         given(settlementExecutionRecorder.start(targetDate)).willReturn(1L);
-        given(redisLockManager.acquire(eq("settlement"), anyLong(), eq("daily")))
-                .willReturn(new RedisLock("fantasy-baseball::settlement-daily", "token"));
+        given(settlementMutex.run(any())).willAnswer(call -> call.<Supplier<SettlementOutcome>>getArgument(0).get());
 
         // when then
         await()
@@ -95,6 +92,7 @@ class SettlementSchedulerSchedulingTest {
         LocalDate targetDate = LocalDate.of(2026, 5, 11);
         given(fantasyTime.rawNow()).willReturn(targetDate);
         given(settlementExecutionRecorder.canStart(targetDate)).willReturn(false);
+        given(settlementMutex.run(any())).willAnswer(call -> call.<Supplier<SettlementOutcome>>getArgument(0).get());
 
         // when
         new SettlementScheduler(
@@ -104,7 +102,8 @@ class SettlementSchedulerSchedulingTest {
                 rankSettlementService,
                 settlementExecutionRecorder,
                 fantasyTime,
-                playerImageBatchService
+                playerImageBatchService,
+                settlementMutex
         ).doDailySettlement();
 
         // then

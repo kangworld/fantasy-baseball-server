@@ -13,7 +13,6 @@ import com.kangworld.fantasybaseball.settlement.service.PlayerCostSettlementServ
 import com.kangworld.fantasybaseball.settlement.service.PlayerPointSettlementService;
 import com.kangworld.fantasybaseball.settlement.service.RankSettlementService;
 import com.kangworld.fantasybaseball.settlement.service.SettlementExecutionRecorder;
-import com.kangworld.rediscore.lock.annotation.RedisLock;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,18 +30,25 @@ public class SettlementScheduler {
     private final FantasyTime fantasyTime;
     private final PlayerImageBatchService playerImageBatchService;
 
+    private final SettlementMutex settlementMutex;
+
     @Scheduled(cron = "${settlement.schedule.daily-cron}", zone = "${settlement.schedule.zone}")
-    @RedisLock(name = "settlement", key = "'daily'")
     public void doDailySettlement() {
         // 정산 결과는 사용자가 조회할 현재 서비스 날짜에 저장하고, 경기 기록은 전날 경기에서 가져온다.
         doDailySettlement(fantasyTime.rawNow());
     }
 
-    @RedisLock(name = "settlement", key = "'daily'")
-    public void doDailySettlement(LocalDate settlementDate) {
-        // 수동 실행과 스케줄 실행이 같은 정산 순서를 타도록 날짜만 외부에서 받을 수 있게 분리한다.
+    public SettlementOutcome doDailySettlement(LocalDate settlementDate) {
+        return settlementMutex.run(() -> settle(settlementDate));
+    }
+
+    private SettlementOutcome settle(LocalDate settlementDate) {
+        if (settlementExecutionRecorder.isDone(settlementDate))
+            return SettlementOutcome.ALREADY_DONE;
         if (!settlementExecutionRecorder.canStart(settlementDate))
-            return;
+            return SettlementOutcome.BLOCKED_PREVIOUS;
+
+        settlementExecutionRecorder.closeInterrupted(settlementDate);
 
         LocalDate gameDate = settlementDate.minusDays(1);
         long settlementExecutionId = settlementExecutionRecorder.start(settlementDate);
@@ -74,6 +80,8 @@ public class SettlementScheduler {
         settlementExecutionRecorder.done(settlementExecutionId);
 
         refreshPlayerImages(settlementDate);
+
+        return SettlementOutcome.COMPLETED;
     }
 
     private void refreshPlayerImages(LocalDate targetDate) {
