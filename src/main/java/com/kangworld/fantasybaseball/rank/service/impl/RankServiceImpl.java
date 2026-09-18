@@ -3,6 +3,7 @@ package com.kangworld.fantasybaseball.rank.service.impl;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
@@ -17,6 +18,7 @@ import com.kangworld.fantasybaseball.rank.dao.view.SeasonRankView;
 import com.kangworld.fantasybaseball.rank.service.RankService;
 import com.kangworld.fantasybaseball.rank.service.dto.DailyRankItemResponse;
 import com.kangworld.fantasybaseball.rank.service.dto.DailyRankPageResponse;
+import com.kangworld.fantasybaseball.rank.service.dto.ResultStatus;
 import com.kangworld.fantasybaseball.rank.service.dto.ScoreboardDailyResponse;
 import com.kangworld.fantasybaseball.rank.service.dto.ScoreboardResponse;
 import com.kangworld.fantasybaseball.rank.service.dto.ScoreboardSeasonResponse;
@@ -66,17 +68,14 @@ public class RankServiceImpl implements RankService {
             return emptyScoreboard(targetDate);
 
         // 개인화 점수판은 회원 수만큼 캐시가 커지므로 초기 구현에서는 매번 필요한 row만 조회한다.
-        ScoreboardDailyResponse daily = dailyRankDao.findViewByMemberIdAndDateId(memberId, dateId)
-                .map(ScoreboardDailyResponse::from)
-                .orElseGet(ScoreboardDailyResponse::empty);
-        ScoreboardSeasonResponse season = seasonRankDao.findViewByMemberIdAndDateId(memberId, dateId)
-                .map(ScoreboardSeasonResponse::from)
-                .orElseGet(ScoreboardSeasonResponse::empty);
+        Optional<DailyRankView> daily = dailyRankDao.findViewByMemberIdAndDateId(memberId, dateId);
+        Optional<SeasonRankView> season = seasonRankDao.findViewByMemberIdAndDateId(memberId, dateId);
 
         return ScoreboardResponse.builder()
                 .date(targetDate)
-                .daily(daily)
-                .season(season)
+                .status(resultStatus(daily.isPresent() || season.isPresent()))
+                .daily(daily.map(ScoreboardDailyResponse::from).orElseGet(ScoreboardDailyResponse::empty))
+                .season(season.map(ScoreboardSeasonResponse::from).orElseGet(ScoreboardSeasonResponse::empty))
                 .build();
     }
 
@@ -93,6 +92,7 @@ public class RankServiceImpl implements RankService {
 
         return DailyRankPageResponse.builder()
                 .date(targetDate)
+                .status(pageStatus(key, ranks, dailyRankPageCache))
                 .page(page)
                 .size(size)
                 .ranks(ranks)
@@ -112,10 +112,27 @@ public class RankServiceImpl implements RankService {
 
         return SeasonRankPageResponse.builder()
                 .date(targetDate)
+                .status(pageStatus(key, ranks, seasonRankPageCache))
                 .page(page)
                 .size(size)
                 .ranks(ranks)
                 .build();
+    }
+
+    private ResultStatus pageStatus(
+            RankPageKey key,
+            List<?> ranks,
+            LoadingCache<RankPageKey, ? extends List<?>> pageCache) {
+        if (!ranks.isEmpty())
+            return ResultStatus.FINALIZED;
+        if (key.page() == 0)
+            return ResultStatus.NO_RESULT;
+
+        return resultStatus(!pageCache.get(RankPageKey.of(key.dateId(), 0, 1)).isEmpty());
+    }
+
+    private ResultStatus resultStatus(boolean hasResult) {
+        return hasResult ? ResultStatus.FINALIZED : ResultStatus.NO_RESULT;
     }
 
     private LocalDate resolveDate(LocalDate date) {
@@ -128,6 +145,7 @@ public class RankServiceImpl implements RankService {
     private ScoreboardResponse emptyScoreboard(LocalDate targetDate) {
         return ScoreboardResponse.builder()
                 .date(targetDate)
+                .status(ResultStatus.WAITING)
                 .daily(ScoreboardDailyResponse.empty())
                 .season(ScoreboardSeasonResponse.empty())
                 .build();
@@ -136,6 +154,7 @@ public class RankServiceImpl implements RankService {
     private DailyRankPageResponse emptyDailyRanks(LocalDate targetDate, int page, int size) {
         return DailyRankPageResponse.builder()
                 .date(targetDate)
+                .status(ResultStatus.WAITING)
                 .page(page)
                 .size(size)
                 .ranks(List.of())
@@ -145,6 +164,7 @@ public class RankServiceImpl implements RankService {
     private SeasonRankPageResponse emptySeasonRanks(LocalDate targetDate, int page, int size) {
         return SeasonRankPageResponse.builder()
                 .date(targetDate)
+                .status(ResultStatus.WAITING)
                 .page(page)
                 .size(size)
                 .ranks(List.of())

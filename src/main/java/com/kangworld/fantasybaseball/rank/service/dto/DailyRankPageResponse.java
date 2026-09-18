@@ -11,6 +11,7 @@ import lombok.Getter;
 public class DailyRankPageResponse {
 
     private LocalDate date;
+    private ResultStatus status;
     private int page;
     private int size;
     private List<DailyRankItemResponse> ranks;

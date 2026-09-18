@@ -11,6 +11,7 @@ import lombok.Getter;
 public class SeasonRankPageResponse {
 
     private LocalDate date;
+    private ResultStatus status;
     private int page;
     private int size;
     private List<SeasonRankItemResponse> ranks;

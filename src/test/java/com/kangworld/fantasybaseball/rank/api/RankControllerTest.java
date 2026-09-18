@@ -23,6 +23,7 @@ import com.kangworld.fantasybaseball.auth.token.JwtAccessTokenFactory;
 import com.kangworld.fantasybaseball.rank.service.RankService;
 import com.kangworld.fantasybaseball.rank.service.dto.DailyRankItemResponse;
 import com.kangworld.fantasybaseball.rank.service.dto.DailyRankPageResponse;
+import com.kangworld.fantasybaseball.rank.service.dto.ResultStatus;
 import com.kangworld.fantasybaseball.rank.service.dto.ScoreboardDailyResponse;
 import com.kangworld.fantasybaseball.rank.service.dto.ScoreboardResponse;
 import com.kangworld.fantasybaseball.rank.service.dto.ScoreboardSeasonResponse;
@@ -69,6 +70,7 @@ class RankControllerTest {
                         .param("date", "2026-05-11"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.date").value("2026-05-11"))
+                .andExpect(jsonPath("$.data.status").value("FINALIZED"))
                 .andExpect(jsonPath("$.data.daily.point").value(120))
                 .andExpect(jsonPath("$.data.daily.displayRankNo").value(2))
                 .andExpect(jsonPath("$.data.daily.previousRankNo").value(6))
@@ -89,6 +91,7 @@ class RankControllerTest {
                         .param("size", "20"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.page").value(1))
+                .andExpect(jsonPath("$.data.status").value("FINALIZED"))
                 .andExpect(jsonPath("$.data.size").value(20))
                 .andExpect(jsonPath("$.data.ranks[0].memberId").value(10))
                 .andExpect(jsonPath("$.data.ranks[0].displayName").value("강민구"))
@@ -107,6 +110,7 @@ class RankControllerTest {
                         .param("date", "2026-05-11"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.page").value(0))
+                .andExpect(jsonPath("$.data.status").value("FINALIZED"))
                 .andExpect(jsonPath("$.data.size").value(50))
                 .andExpect(jsonPath("$.data.ranks[0].displayName").value("강민구"))
                 .andExpect(jsonPath("$.data.ranks[0].previousRankNo").value(2))
@@ -155,6 +159,7 @@ class RankControllerTest {
     private ScoreboardResponse scoreboard(LocalDate date) {
         return ScoreboardResponse.builder()
                 .date(date)
+                .status(ResultStatus.FINALIZED)
                 .daily(ScoreboardDailyResponse.builder()
                         .point(120)
                         .rankNo(3)
@@ -174,6 +179,7 @@ class RankControllerTest {
     private DailyRankPageResponse dailyRanks(LocalDate date) {
         return DailyRankPageResponse.builder()
                 .date(date)
+                .status(ResultStatus.FINALIZED)
                 .page(1)
                 .size(20)
                 .ranks(List.of(DailyRankItemResponse.builder()
@@ -190,6 +196,7 @@ class RankControllerTest {
     private SeasonRankPageResponse seasonRanks(LocalDate date) {
         return SeasonRankPageResponse.builder()
                 .date(date)
+                .status(ResultStatus.FINALIZED)
                 .page(0)
                 .size(50)
                 .ranks(List.of(SeasonRankItemResponse.builder()

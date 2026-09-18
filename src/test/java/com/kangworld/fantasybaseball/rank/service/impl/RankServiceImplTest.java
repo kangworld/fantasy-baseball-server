@@ -5,6 +5,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -22,6 +23,7 @@ import com.kangworld.fantasybaseball.rank.dao.SeasonRankDao;
 import com.kangworld.fantasybaseball.rank.dao.view.DailyRankView;
 import com.kangworld.fantasybaseball.rank.dao.view.SeasonRankView;
 import com.kangworld.fantasybaseball.rank.service.dto.DailyRankPageResponse;
+import com.kangworld.fantasybaseball.rank.service.dto.ResultStatus;
 import com.kangworld.fantasybaseball.rank.service.dto.ScoreboardResponse;
 import com.kangworld.fantasybaseball.rank.service.dto.SeasonRankPageResponse;
 import com.kangworld.fantasybaseball.settlement.service.SettlementExecutionRecorder;
@@ -62,6 +64,7 @@ class RankServiceImplTest {
         ScoreboardResponse response = rankService.findMyScoreboard(1L, null);
 
         // then
+        assertThat(response.getStatus()).isEqualTo(ResultStatus.FINALIZED);
         assertThat(response.getDate()).isEqualTo(LocalDate.of(2026, 5, 11));
         assertThat(response.getDaily().getPoint()).isEqualTo(120);
         assertThat(response.getDaily().getDisplayRankNo()).isEqualTo(2);
@@ -83,6 +86,7 @@ class RankServiceImplTest {
         ScoreboardResponse second = rankService.findMyScoreboard(1L, date);
 
         // then
+        assertThat(first.getStatus()).isEqualTo(ResultStatus.NO_RESULT);
         assertThat(first.getDaily().getPoint()).isZero();
         assertThat(first.getDaily().getRankNo()).isZero();
         assertThat(first.getDaily().getPreviousRankNo()).isZero();
@@ -140,8 +144,9 @@ class RankServiceImplTest {
         DailyRankPageResponse response = rankService.findDailyRanks(date, 0, 50);
 
         // then
+        assertThat(response.getStatus()).isEqualTo(ResultStatus.WAITING);
         assertThat(response.getRanks()).isEmpty();
-        verify(dailyRankDao, never()).findViewsByDateId(20260511, 50, 0);
+        verifyNoInteractions(dailyRankDao, seasonRankDao);
     }
 
     @Test
@@ -154,10 +159,29 @@ class RankServiceImplTest {
         ScoreboardResponse response = rankService.findMyScoreboard(1L, date);
 
         // then
+        assertThat(response.getStatus()).isEqualTo(ResultStatus.WAITING);
         assertThat(response.getDaily().getPoint()).isZero();
         assertThat(response.getSeason().getPoint()).isZero();
         verify(dailyRankDao, never()).findViewByMemberIdAndDateId(1L, 20260511);
         verify(seasonRankDao, never()).findViewByMemberIdAndDateId(1L, 20260511);
+    }
+
+    /** 날짜에 확정 랭킹은 있지만 조회한 페이지가 비어 있는 경우와 날짜에 랭킹이 없는 경우를 구분한다. */
+    @Test
+    void distinguishesACompletedDateWithNoRanksFromAnEmptyPage() {
+        LocalDate date = LocalDate.of(2026, 5, 11);
+        given(settlementExecutionRecorder.isDone(date)).willReturn(true);
+        given(dailyRankDao.findViewsByDateId(20260511, 20, 20)).willReturn(List.of());
+        given(dailyRankDao.findViewsByDateId(20260511, 1, 0))
+                .willReturn(List.of(dailyRank(1, 1, 1L, "강민구", 0)));
+
+        DailyRankPageResponse daily = rankService.findDailyRanks(date, 1, 20);
+        SeasonRankPageResponse season = rankService.findSeasonRanks(date, 1, 20);
+
+        assertThat(daily.getRanks()).isEmpty();
+        assertThat(daily.getStatus()).isEqualTo(ResultStatus.FINALIZED);
+        assertThat(season.getRanks()).isEmpty();
+        assertThat(season.getStatus()).isEqualTo(ResultStatus.NO_RESULT);
     }
 
     private DailyRankView dailyRank(int rankNo, int displayRankNo, long memberId, String displayName, int point) {

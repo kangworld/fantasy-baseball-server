@@ -10,6 +10,7 @@ import lombok.Getter;
 public class ScoreboardResponse {
 
     private LocalDate date;
+    private ResultStatus status;
     private ScoreboardDailyResponse daily;
     private ScoreboardSeasonResponse season;
 
