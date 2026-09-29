@@ -24,6 +24,7 @@ import com.kangworld.fantasybaseball.rank.dao.view.DailyRankView;
 import com.kangworld.fantasybaseball.rank.dao.view.SeasonRankView;
 import com.kangworld.fantasybaseball.rank.service.dto.DailyRankPageResponse;
 import com.kangworld.fantasybaseball.rank.service.dto.ResultStatus;
+import com.kangworld.fantasybaseball.rank.service.dto.ScoreboardBreakdownResponse;
 import com.kangworld.fantasybaseball.rank.service.dto.ScoreboardResponse;
 import com.kangworld.fantasybaseball.rank.service.dto.SeasonRankPageResponse;
 import com.kangworld.fantasybaseball.settlement.service.SettlementExecutionRecorder;
@@ -43,11 +44,14 @@ class RankServiceImplTest {
     @Mock
     private FantasyTime fantasyTime;
 
+    @Mock
+    private ScoreboardBreakdownService scoreboardBreakdownService;
+
     private RankServiceImpl rankService;
 
     @BeforeEach
     void setUp() {
-        rankService = new RankServiceImpl(dailyRankDao, seasonRankDao, settlementExecutionRecorder, fantasyTime);
+        rankService = new RankServiceImpl(dailyRankDao, seasonRankDao, settlementExecutionRecorder, fantasyTime, scoreboardBreakdownService);
     }
 
     @Test
@@ -59,6 +63,8 @@ class RankServiceImplTest {
                 .willReturn(Optional.of(dailyRank(3, 2, 1L, "강민구", 120)));
         given(seasonRankDao.findViewByMemberIdAndDateId(1L, 20260511))
                 .willReturn(Optional.of(seasonRank(5, 4, 7, 1L, "강민구", 1020, 120)));
+        var breakdown = new ScoreboardBreakdownResponse(LocalDate.of(2026, 5, 10), 120, 120, List.of());
+        given(scoreboardBreakdownService.find(1L, LocalDate.of(2026, 5, 11), 120)).willReturn(Optional.of(breakdown));
 
         // when
         ScoreboardResponse response = rankService.findMyScoreboard(1L, null);
@@ -66,6 +72,7 @@ class RankServiceImplTest {
         // then
         assertThat(response.getStatus()).isEqualTo(ResultStatus.FINALIZED);
         assertThat(response.getDate()).isEqualTo(LocalDate.of(2026, 5, 11));
+        assertThat(response.getScoreBreakdown()).isEqualTo(breakdown);
         assertThat(response.getDaily().getPoint()).isEqualTo(120);
         assertThat(response.getDaily().getDisplayRankNo()).isEqualTo(2);
         assertThat(response.getDaily().getPreviousRankNo()).isEqualTo(6);
@@ -160,6 +167,8 @@ class RankServiceImplTest {
 
         // then
         assertThat(response.getStatus()).isEqualTo(ResultStatus.WAITING);
+        assertThat(response.getScoreBreakdown()).isNull();
+        verifyNoInteractions(scoreboardBreakdownService);
         assertThat(response.getDaily().getPoint()).isZero();
         assertThat(response.getSeason().getPoint()).isZero();
         verify(dailyRankDao, never()).findViewByMemberIdAndDateId(1L, 20260511);

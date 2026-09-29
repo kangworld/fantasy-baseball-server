@@ -20,10 +20,12 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.kangworld.fantasybaseball.auth.token.JwtAccessTokenFactory;
+import com.kangworld.fantasybaseball.player.model.PlayerPosition;
 import com.kangworld.fantasybaseball.rank.service.RankService;
 import com.kangworld.fantasybaseball.rank.service.dto.DailyRankItemResponse;
 import com.kangworld.fantasybaseball.rank.service.dto.DailyRankPageResponse;
 import com.kangworld.fantasybaseball.rank.service.dto.ResultStatus;
+import com.kangworld.fantasybaseball.rank.service.dto.ScoreboardBreakdownResponse;
 import com.kangworld.fantasybaseball.rank.service.dto.ScoreboardDailyResponse;
 import com.kangworld.fantasybaseball.rank.service.dto.ScoreboardResponse;
 import com.kangworld.fantasybaseball.rank.service.dto.ScoreboardSeasonResponse;
@@ -75,7 +77,9 @@ class RankControllerTest {
                 .andExpect(jsonPath("$.data.daily.displayRankNo").value(2))
                 .andExpect(jsonPath("$.data.daily.previousRankNo").value(6))
                 .andExpect(jsonPath("$.data.season.point").value(1020))
-                .andExpect(jsonPath("$.data.season.previousRankNo").value(7));
+                .andExpect(jsonPath("$.data.season.previousRankNo").value(7))
+                .andExpect(jsonPath("$.data.scoreBreakdown.gameDate").value("2026-05-10"))
+                .andExpect(jsonPath("$.data.scoreBreakdown.players[0].games[0].point").value(120));
     }
 
     @Test
@@ -160,6 +164,9 @@ class RankControllerTest {
         return ScoreboardResponse.builder()
                 .date(date)
                 .status(ResultStatus.FINALIZED)
+                .scoreBreakdown(new ScoreboardBreakdownResponse(date.minusDays(1), 120, 120, List.of(
+                        new ScoreboardBreakdownResponse.Player(10, PlayerPosition.P, 1, 120, List.of(
+                                new ScoreboardBreakdownResponse.Game("20260510LGHH0", 120))))))
                 .daily(ScoreboardDailyResponse.builder()
                         .point(120)
                         .rankNo(3)

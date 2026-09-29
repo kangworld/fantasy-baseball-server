@@ -5,12 +5,15 @@ import java.util.Map;
 import java.util.Set;
 
 import com.kangworld.fantasybaseball.point.model.PlayerDailyPoint;
+import com.kangworld.fantasybaseball.point.model.PlayerGamePoint;
 
 public interface PlayerDailyPointDao {
 
     void deleteByDateId(int dateId);
 
     void upsertAll(List<PlayerDailyPoint> dailyPoints);
+
+    List<PlayerGamePoint> findGamePointsByPlayerIds(int dateId, Set<Long> playerIds);
 
     Map<Long, Integer> findPointByPlayerIds(int dateId, Set<Long> playerIds);
 

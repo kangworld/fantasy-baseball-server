@@ -36,6 +36,7 @@ public class RankServiceImpl implements RankService {
     private final SeasonRankDao seasonRankDao;
     private final SettlementExecutionRecorder settlementExecutionRecorder;
     private final FantasyTime fantasyTime;
+    private final ScoreboardBreakdownService scoreboardBreakdownService;
     private final LoadingCache<RankPageKey, List<DailyRankView>> dailyRankPageCache;
     private final LoadingCache<RankPageKey, List<SeasonRankView>> seasonRankPageCache;
 
@@ -43,11 +44,13 @@ public class RankServiceImpl implements RankService {
             DailyRankDao dailyRankDao,
             SeasonRankDao seasonRankDao,
             SettlementExecutionRecorder settlementExecutionRecorder,
-            FantasyTime fantasyTime) {
+            FantasyTime fantasyTime,
+            ScoreboardBreakdownService scoreboardBreakdownService) {
         this.dailyRankDao = dailyRankDao;
         this.seasonRankDao = seasonRankDao;
         this.settlementExecutionRecorder = settlementExecutionRecorder;
         this.fantasyTime = fantasyTime;
+        this.scoreboardBreakdownService = scoreboardBreakdownService;
         this.dailyRankPageCache = Caffeine.newBuilder()
                 // 전체 랭킹은 여러 사용자가 같은 페이지를 반복 조회하므로 짧은 로컬 캐시만 둔다.
                 .expireAfterWrite(RANK_PAGE_CACHE_TTL)
@@ -76,6 +79,8 @@ public class RankServiceImpl implements RankService {
                 .status(resultStatus(daily.isPresent() || season.isPresent()))
                 .daily(daily.map(ScoreboardDailyResponse::from).orElseGet(ScoreboardDailyResponse::empty))
                 .season(season.map(ScoreboardSeasonResponse::from).orElseGet(ScoreboardSeasonResponse::empty))
+                .scoreBreakdown(daily.flatMap(rank -> scoreboardBreakdownService.find(memberId, targetDate, rank.getPoint()))
+                        .orElse(null))
                 .build();
     }
 

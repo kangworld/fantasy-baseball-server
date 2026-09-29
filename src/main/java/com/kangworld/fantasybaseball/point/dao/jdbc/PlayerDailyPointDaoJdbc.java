@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 
 import com.kangworld.fantasybaseball.point.dao.PlayerDailyPointDao;
 import com.kangworld.fantasybaseball.point.model.PlayerDailyPoint;
+import com.kangworld.fantasybaseball.point.model.PlayerGamePoint;
 
 import lombok.RequiredArgsConstructor;
 
@@ -54,6 +55,25 @@ public class PlayerDailyPointDaoJdbc implements PlayerDailyPointDao {
                 .toArray(MapSqlParameterSource[]::new);
 
         namedParameterJdbcTemplate.batchUpdate(sql, parameters);
+    }
+
+    @Override
+    public List<PlayerGamePoint> findGamePointsByPlayerIds(int dateId, Set<Long> playerIds) {
+        if (playerIds.isEmpty())
+            return List.of();
+
+        String sql = """
+                select player_id, game_id, point
+                from player_daily_point
+                where date_id = :dateId and player_id in (:playerIds)
+                order by game_id
+                """;
+        MapSqlParameterSource parameters = new MapSqlParameterSource()
+                .addValue("dateId", dateId)
+                .addValue("playerIds", playerIds);
+
+        return namedParameterJdbcTemplate.query(sql, parameters, (rs, rowNum) ->
+                new PlayerGamePoint(rs.getLong("player_id"), rs.getString("game_id"), rs.getInt("point")));
     }
 
     @Override
