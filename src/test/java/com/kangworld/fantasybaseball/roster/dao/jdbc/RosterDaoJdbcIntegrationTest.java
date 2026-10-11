@@ -69,6 +69,20 @@ class RosterDaoJdbcIntegrationTest {
                 .containsExactly(10L, 20L);
     }
 
+    /** 두 요청에 같은 버전이 들어오면 MySQL에서 한 요청만 버전을 올릴 수 있다. */
+    @Test
+    void onlyOneWriteCanAdvanceTheSameMysqlVersion() {
+        long id = rosterDao.insert(buildRoster(1L, 20260504));
+        LocalDateTime updateTime = LocalDateTime.of(2026, 5, 4, 11, 0);
+
+        assertThat(rosterDao.findByMemberIdAndDateId(1L, 20260504).orElseThrow().getVersion()).isZero();
+        assertThat(rosterDao.advanceVersion(id, 0, updateTime)).isTrue();
+        assertThat(rosterDao.advanceVersion(id, 0, updateTime.plusMinutes(1))).isFalse();
+        Roster saved = rosterDao.findByMemberIdAndDateId(1L, 20260504).orElseThrow();
+        assertThat(saved.getVersion()).isEqualTo(1);
+        assertThat(saved.getUpdatedAt()).isEqualTo(updateTime);
+    }
+
     private Roster buildRoster(long memberId, int dateId) {
         LocalDateTime now = LocalDateTime.of(2026, 5, 4, 10, 0);
 

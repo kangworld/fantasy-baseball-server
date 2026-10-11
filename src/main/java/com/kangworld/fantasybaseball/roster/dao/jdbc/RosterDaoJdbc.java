@@ -32,8 +32,8 @@ public class RosterDaoJdbc implements RosterDao {
     @Override
     public long insert(Roster roster) {
         String sql = """
-                insert into roster values (
-                    default,
+                insert into roster (member_id, date_id, created_at, updated_at)
+                values (
                     :memberId,
                     :dateId,
                     :createdAt,
@@ -98,19 +98,17 @@ public class RosterDaoJdbc implements RosterDao {
     }
 
     @Override
-    public void updateTimestamp(long rosterId, LocalDateTime updatedAt) {
+    public boolean advanceVersion(long rosterId, long expectedVersion, LocalDateTime updatedAt) {
         String sql = """
                 update roster
-                set updated_at = :updatedAt
-                where roster_id = :rosterId
+                set version = version + 1, updated_at = :updatedAt
+                where roster_id = :rosterId and version = :expectedVersion
                 """;
 
-        namedParameterJdbcTemplate.update(
-                sql,
-                new MapSqlParameterSource()
-                        .addValue("rosterId", rosterId)
-                        .addValue("updatedAt", Timestamp.valueOf(updatedAt))
-        );
+        return namedParameterJdbcTemplate.update(sql, new MapSqlParameterSource()
+                .addValue("rosterId", rosterId)
+                .addValue("expectedVersion", expectedVersion)
+                .addValue("updatedAt", Timestamp.valueOf(updatedAt))) == 1;
     }
 
     private static class RosterRowMapper implements RowMapper<Roster> {
@@ -120,6 +118,7 @@ public class RosterDaoJdbc implements RosterDao {
 
             return Roster.builder()
                     .rosterId(rs.getLong("roster_id"))
+                    .version(rs.getLong("version"))
                     .memberId(rs.getLong("member_id"))
                     .dateId(rs.getInt("date_id"))
                     .createdAt(rs.getTimestamp("created_at").toLocalDateTime())

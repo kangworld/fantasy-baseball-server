@@ -10,6 +10,7 @@ import lombok.Getter;
 public class Roster {
 
     private long rosterId;
+    private long version;
     private long memberId;
     private int dateId;
     private LocalDateTime createdAt;

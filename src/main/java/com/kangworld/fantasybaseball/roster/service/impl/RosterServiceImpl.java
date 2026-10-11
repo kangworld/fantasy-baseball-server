@@ -17,6 +17,7 @@ import com.kangworld.fantasybaseball.roster.exception.RosterAlreadyExistsExcepti
 import com.kangworld.fantasybaseball.roster.exception.RosterNotFoundException;
 import com.kangworld.fantasybaseball.roster.exception.RosterScheduleUnavailableException;
 import com.kangworld.fantasybaseball.roster.exception.RosterValidationException;
+import com.kangworld.fantasybaseball.roster.exception.RosterVersionConflictException;
 import com.kangworld.fantasybaseball.roster.model.Roster;
 import com.kangworld.fantasybaseball.roster.model.RosterPlayer;
 import com.kangworld.fantasybaseball.roster.service.RosterLineupRules;
@@ -84,7 +85,7 @@ public class RosterServiceImpl implements RosterService {
         List<RosterPlayer> rosterPlayers = toRosterPlayers(rosterId, request.getPlayers(), now);
         rosterPlayerDao.insertAll(rosterPlayers);
 
-        return toResponse(rosterId, rosterDate, request.getPlayers(), playerSummaryById);
+        return toResponse(rosterId, roster.getVersion(), rosterDate, request.getPlayers(), playerSummaryById);
     }
 
     @Override
@@ -99,6 +100,9 @@ public class RosterServiceImpl implements RosterService {
 
         Roster roster = rosterDao.findByMemberIdAndDateId(memberId, dateId)
                 .orElseThrow(RosterNotFoundException::new);
+        long expectedVersion = request.getVersion() == null ? roster.getVersion() : request.getVersion();
+        if (expectedVersion != roster.getVersion())
+            throw new RosterVersionConflictException();
 
         // 클라이언트는 14명 전체 라인업을 다시 보내므로 저장 전후의 시작 경기 선수 집합만 비교한다.
         Map<Long, PlayerSummary> playerSummaryById = getPlayerSummaries(dateId, getRequestedPlayerIds(request.getPlayers()));
@@ -113,12 +117,14 @@ public class RosterServiceImpl implements RosterService {
                 request.getPlayers(),
                 now);
 
-        // 화면은 14명 전체 구성을 다시 제출하므로 기존 포지션 구성을 비우고 새 목록으로 교체한다.
+        if (!rosterDao.advanceVersion(roster.getRosterId(), expectedVersion, now))
+            throw new RosterVersionConflictException();
+
+        // 버전 갱신과 선수 목록 교체를 같은 트랜잭션에서 처리한다.
         rosterPlayerDao.deleteByRosterId(roster.getRosterId());
         rosterPlayerDao.insertAll(rosterPlayers);
-        rosterDao.updateTimestamp(roster.getRosterId(), now);
 
-        return toResponse(roster.getRosterId(), rosterDate, request.getPlayers(), playerSummaryById);
+        return toResponse(roster.getRosterId(), expectedVersion + 1, rosterDate, request.getPlayers(), playerSummaryById);
     }
 
     @Override
@@ -335,6 +341,7 @@ public class RosterServiceImpl implements RosterService {
 
         return RosterResponse.builder()
                 .rosterId(roster.getRosterId())
+                .version(roster.getVersion())
                 .date(date)
                 .players(playerResponses)
                 .build();
@@ -342,6 +349,7 @@ public class RosterServiceImpl implements RosterService {
 
     private RosterResponse toResponse(
             long rosterId,
+            long version,
             LocalDate date,
             List<RosterPlayerRequest> players,
             Map<Long, PlayerSummary> playerSummaryById) {
@@ -354,6 +362,7 @@ public class RosterServiceImpl implements RosterService {
 
         return RosterResponse.builder()
                 .rosterId(rosterId)
+                .version(version)
                 .date(date)
                 .players(playerResponses)
                 .build();

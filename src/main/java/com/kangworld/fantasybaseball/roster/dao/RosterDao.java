@@ -14,6 +14,6 @@ public interface RosterDao {
 
     List<Roster> findByDateId(int dateId);
 
-    void updateTimestamp(long rosterId, LocalDateTime updatedAt);
+    boolean advanceVersion(long rosterId, long expectedVersion, LocalDateTime updatedAt);
 
 }

@@ -19,6 +19,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
@@ -258,6 +259,49 @@ class RosterControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("로스터 수정이 완료되었습니다."))
                 .andExpect(jsonPath("$.data.players[0].playerId").value(201));
+    }
+
+    /** 오래된 버전으로 저장하면 409를 반환하고 먼저 저장한 로스터를 보존한다. */
+    @Test
+    void staleVersionReturnsConflictAndKeepsTheWinningLineup() throws Exception {
+        List<Long> original = defaultPlayerIds();
+        List<Long> changed = replacementPlayerIds();
+        insertRosterPlayers(original);
+        insertRosterPlayers(changed);
+        var cookie = accessTokenCookie(jwtAccessTokenFactory.create(1L, "USER"));
+
+        mockMvc.perform(post("/api/rosters/me").cookie(cookie).with(trustedOrigin())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(rosterRequest(original))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.version").value(0));
+
+        mockMvc.perform(put("/api/rosters/me").cookie(cookie).with(trustedOrigin())
+                        .contentType(MediaType.APPLICATION_JSON).content(versionedRequest(changed, 0)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.version").value(1));
+
+        mockMvc.perform(put("/api/rosters/me").cookie(cookie).with(trustedOrigin())
+                        .contentType(MediaType.APPLICATION_JSON).content(versionedRequest(original, 0)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("로스터가 이미 수정되었습니다. 최신 로스터를 다시 조회해 주세요."));
+
+        mockMvc.perform(get("/api/rosters/me").cookie(cookie).param("date", ROSTER_DATE.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.version").value(1))
+                .andExpect(jsonPath("$.data.players[0].playerId").value(201));
+
+        mockMvc.perform(put("/api/rosters/me").cookie(cookie).with(trustedOrigin())
+                        .contentType(MediaType.APPLICATION_JSON).content(versionedRequest(original, 1)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.version").value(2));
+    }
+
+    private String versionedRequest(List<Long> playerIds, long version) throws Exception {
+        Map<String, Object> request = new HashMap<>(rosterRequest(playerIds));
+        request.put("version", version);
+
+        return objectMapper.writeValueAsString(request);
     }
 
     @Test

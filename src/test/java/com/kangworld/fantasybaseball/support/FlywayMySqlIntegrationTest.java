@@ -33,7 +33,7 @@ class FlywayMySqlIntegrationTest {
         // then
         assertThat(databaseProductName).isEqualTo("MySQL");
         assertThat(memberTableCount).isEqualTo(1);
-        assertThat(migrationCount).isEqualTo(9);
+        assertThat(migrationCount).isEqualTo(10);
     }
 
 }

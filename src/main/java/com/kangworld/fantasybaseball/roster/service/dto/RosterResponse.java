@@ -11,6 +11,7 @@ import lombok.Getter;
 public class RosterResponse {
 
     private long rosterId;
+    private long version;
     private LocalDate date;
     private List<RosterPlayerResponse> players;
 
